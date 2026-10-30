@@ -129,10 +129,17 @@ $('view').onclick = () => window.open('index.html?s=' + encodeURIComponent(slug)
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     $('app').innerHTML = `<h1>כניסה לעריכה</h1><div class="card"><label>המייל שלך</label><input id="em" type="email" inputmode="email">
-      <div class="tools"><button class="primary" id="send">שליחת קוד</button></div><div id="step2" hidden><label>הקוד שקיבלת במייל</label><input id="code" inputmode="numeric">
+      <div class="tools"><button class="primary" id="send">שליחת מייל כניסה</button></div><div id="step2" hidden>
+      <p class="muted">במייל יש קישור "Sign in". לחיצה ארוכה עליו ← העתקת קישור ← הדבקה כאן.</p>
+      <label>הקישור (או הקוד) מהמייל</label><input id="code" dir="ltr">
       <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
-    $('send').onclick = async () => { const { error } = await sb.auth.signInWithOtp({ email: $('em').value, options: { shouldCreateUser: false, emailRedirectTo: location.href } }); error ? msg(error.message) : ($('step2').hidden = false, msg('נשלח מייל — הקלידו את הקוד או לחצו על הקישור')); };
-    $('ok').onclick = async () => { const { error } = await sb.auth.verifyOtp({ email: $('em').value, token: $('code').value.trim(), type: 'email' }); error ? msg('קוד שגוי') : location.reload(); };
+    $('send').onclick = async () => { const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
+      error ? msg(/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : error.message)
+            : ($('step2').hidden = false, msg('נשלח מייל')); };
+    // המייל מכיל קישור עם token — מאמתים אותו כאן במקום לעבור בכתובת החזרה
+    $('ok').onclick = async () => { const v = $('code').value.trim(), th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
+      const { error } = th ? await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' }) : await sb.auth.verifyOtp({ email: $('em').value.trim(), token: v, type: 'email' });
+      error ? msg('הקישור לא תקין או שפג תוקפו — שלחו מייל חדש') : location.reload(); };
     return;
   }
   const { data } = await sb.from('tiny_sites').select('content').eq('slug', slug).single();
