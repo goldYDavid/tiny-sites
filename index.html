@@ -16,7 +16,8 @@
 <script src="presets.js"></script>
 <script>
 // הצגה: קודם מהמטמון (מיידי), ואז עדכון מהשרת ברקע
-const qs = new URLSearchParams(location.search), slug = qs.get('s') || window.SITE_SLUG, demo = qs.get('demo');
+const qs = new URLSearchParams(location.search), slug = qs.get('s') || window.PAGE_SLUG || window.SITE_SLUG,  // PAGE_SLUG: עותק קבוע של הדף ב-p/ (תצוגה מקדימה בוואטסאפ)
+      demo = qs.get('demo');
 let SITE, cart = {}, ORDER = { items: [] };
 function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;

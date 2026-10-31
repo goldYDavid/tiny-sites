@@ -30,9 +30,9 @@ async function connect() {
 const DB = {
   // הגדרות העסק + מכסת הדפים (נוצר בכניסה הראשונה)
   async biz() {
-    if (!sb) return { settings: LS.get('biz', {}), page_limit: LS.get('limit', 1) };
-    let { data } = await sb.from('businesses').select('settings,page_limit').eq('owner', UID).maybeSingle();
-    if (!data) { await sb.from('businesses').insert({ owner: UID, settings: {} }); data = { settings: {}, page_limit: 1 }; }
+    if (!sb) return { settings: LS.get('biz', {}), page_limit: LS.get('limit', 1), renews_at: LS.get('renews', null) };
+    let { data } = await sb.from('businesses').select('settings,page_limit,renews_at').eq('owner', UID).maybeSingle();
+    if (!data) { await sb.from('businesses').insert({ owner: UID, settings: {} }); data = { settings: {}, page_limit: 1, renews_at: null }; }
     return data;
   },
   async saveBiz(settings) {

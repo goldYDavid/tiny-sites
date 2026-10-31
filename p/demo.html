@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><!-- שלב בדיקות: להסיר לפני השקה -->
+<title>שם העסק — מוצרי חנוכה איכותיים במחירים הוגנים</title>
+<base href="../"><script>window.PAGE_SLUG = "demo"</script>
+<meta name="description" content="הזמנה בוואטסאפ בוואטסאפ">
+<meta property="og:type" content="website"><meta property="og:locale" content="he_IL">
+<meta property="og:url" content="https://goldydavid.github.io/tiny-sites/p/demo.html"><meta property="og:title" content="שם העסק — מוצרי חנוכה איכותיים במחירים הוגנים"><meta property="og:description" content="הזמנה בוואטסאפ בוואטסאפ">
+<meta property="og:image" content="https://goldydavid.github.io/tiny-sites/p/demo.jpg?v=1793354525"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="wrap" id="app"><div class="skel"></div></div>
+<div class="bar"><a id="cta" href="#" target="_blank" rel="noopener">וואטסאפ</a></div>
+<script src="config.js"></script>
+<script src="render.js"></script>
+<script src="presets.js"></script>
+<script>
+// הצגה: קודם מהמטמון (מיידי), ואז עדכון מהשרת ברקע
+const qs = new URLSearchParams(location.search), slug = qs.get('s') || window.PAGE_SLUG || window.SITE_SLUG,  // PAGE_SLUG: עותק קבוע של הדף ב-p/ (תצוגה מקדימה בוואטסאפ)
+      demo = qs.get('demo');
+let SITE, cart = {}, ORDER = { items: [] };
+function render(site) {
+  SITE = site; document.title = `${site.name} — ${site.tagline}`;
+  document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
+  const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
+  app.innerHTML = renderSite(site, false, cart);
+  update();
+}
+function update() {
+  const lines = []; let sum = 0;
+  for (const [k, q] of Object.entries(cart)) if (q) { const [si, ii] = k.split('-'), it = SITE.sections[si].items[ii]; lines.push(`${q} × ${it.name}`); sum += q * it.price; }
+  const text = lines.length ? `שלום, אשמח להזמין:\n${lines.join('\n')}\nסה"כ: ${Math.round(sum * 100) / 100} ₪` : `שלום, הגעתי מהאתר של ${SITE.name}`;
+  const a = document.getElementById('cta'); ORDER = { items: lines, total: Math.round(sum * 100) / 100 };
+  a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
+  a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
+}
+// טופס השארת פרטים ← נשמר בפניות של בעל העסק
+document.addEventListener('submit', async e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
+  const d = Object.fromEntries(new FormData(f)), btn = f.querySelector('button'); btn.disabled = true;
+  try { await sendLead(slug, 'lead', { ...d, section: SITE.sections[f.dataset.lead].title }); f.innerHTML = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>'; }
+  catch { btn.disabled = false; btn.textContent = 'השליחה נכשלה — נסו שוב'; } });
+// הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
+document.getElementById('cta').addEventListener('click', () => { if (ORDER.items.length && !demo) sendLead(slug, 'order', ORDER).catch(() => {}); });
+document.addEventListener('click', e => { const b = e.target.closest('.qty button'); if (!b) return;
+  const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
+
+(async () => {
+  if (demo) return render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') });
+  const key = 'site:' + slug;
+  try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
+  const fresh = await window.loadSite(slug).catch(() => null);
+  if (fresh) { try { localStorage.setItem(key, JSON.stringify(fresh)); } catch {} if (JSON.stringify(fresh) !== JSON.stringify(SITE)) render(fresh); }
+  else if (!SITE) document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center">הדף לא נמצא</p>';
+})();
+</script>
+</body>
+</html>
