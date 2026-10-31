@@ -2,6 +2,7 @@
 window.SUPABASE_URL = 'https://feshcsgtkfftmehbslyh.supabase.co';  // פרויקט הסנדוויצים, סכמה נפרדת tiny (sites, businesses, leads)
 window.SUPABASE_KEY = 'sb_publishable_2AoPK8NRTUGnEiKLX82Rcg__3OSZPJa';   // מפתח ציבורי (publishable) בלבד
 window.SITE_SLUG = 'demo';
+window.SALES_PHONE = '972584433453';  // וואטסאפ שלנו — בעל עסק שהגיע למכסת הדפים פונה לכאן לשדרוג חבילה
 if (new URLSearchParams(location.search).has('local')) window.SUPABASE_URL = '';  // ?local — בדיקה בלי שרת
 
 // דף = הגדרות העסק (שם, טלפון, צבע...) + תוכן הדף. בקשה אחת לשרת.
