@@ -6,104 +6,45 @@
 <meta name="robots" content="noindex,nofollow"><!-- שלב בדיקות: להסיר לפני השקה -->
 <title>טוען…</title>
 <link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
-<style>
-:root{--bg:#fbf8f3;--card:#fff;--ink:#231c16;--muted:#76695c;--line:#ebe2d6;--accent:#c8741a;--wa:#1fa855}
-@media (prefers-color-scheme:dark){:root{--bg:#17130f;--card:#221c17;--ink:#f3ebe1;--muted:#b4a392;--line:#382e25}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Segoe UI",Arial,sans-serif}
-.wrap{max-width:680px;margin:auto;padding:0 16px 110px}
-header{text-align:center;padding:34px 0 8px}
-.hero-img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin-top:16px}
-.logo{width:76px;height:76px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-size:36px;margin:auto}
-h1{font-size:clamp(26px,7vw,34px);line-height:1.2;margin:12px 0 6px}.sub{color:var(--muted);margin:0;font-size:17px}
-.badge{display:inline-block;margin-top:14px;background:var(--accent);color:#fff;padding:6px 16px;border-radius:99px;font-weight:700;font-size:14px}
-.open{display:inline-block;margin-top:10px;font-weight:700;font-size:14px}.open.y{color:#1f8a4c}.open.n{color:#b3412f}
-section h2{font-size:20px;margin:30px 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
-.item{display:flex;gap:12px;align-items:center}
-.item img{width:64px;height:64px;border-radius:12px;object-fit:cover}
-.item .t{flex:1;min-width:0}.item b{display:block}.item small,.muted{color:var(--muted)}
-.price{font-weight:800;white-space:nowrap}
-.qty{display:flex;align-items:center;gap:6px}
-.qty button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:20px;cursor:pointer}
-.qty span{min-width:18px;text-align:center;font-weight:800}
-.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}.row:last-child{border:0}
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
-details.card summary{font-weight:700;cursor:pointer}details.card p{margin:8px 0 0}
-blockquote{margin:0}blockquote p{margin:0 0 4px;font-size:17px}
-.text p{margin:3px 0}
-.contact a{color:var(--accent);font-weight:700}
-.bar{position:fixed;inset:auto 0 0;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 16px}
-.bar a{display:flex;justify-content:center;align-items:center;gap:8px;max-width:648px;margin:auto;background:var(--wa);color:#fff;text-decoration:none;font-weight:800;padding:14px;border-radius:14px;font-size:17px}
-footer{text-align:center;color:var(--muted);font-size:13px;margin-top:34px}
-.skel{height:60vh}
-</style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 <div class="wrap" id="app"><div class="skel"></div></div>
 <div class="bar"><a id="cta" href="#" target="_blank" rel="noopener">וואטסאפ</a></div>
 <script src="config.js"></script>
+<script src="render.js"></script>
 <script src="presets.js"></script>
 <script>
 // הצגה: קודם מהמטמון (מיידי), ואז עדכון מהשרת ברקע
 const qs = new URLSearchParams(location.search), slug = qs.get('s') || window.SITE_SLUG, demo = qs.get('demo');
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const nl = s => esc(s).split('\n').map(l => `<p>${l}</p>`).join('');
-let SITE, cart = {};
-const R = {
-  products: (s, si) => s.items.map((it, ii) => `<div class="card item">${it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy">` : ''}
-    <div class="t"><b>${esc(it.name)}</b>${it.note ? `<small>${esc(it.note)}</small>` : ''}</div><div class="price">${esc(it.price)} ₪</div>
-    ${s.noCart ? '' : `<div class="qty"><button data-k="${si}-${ii}" data-d="1" aria-label="הוספה">+</button><span id="q${si}-${ii}">${cart[si + '-' + ii] || 0}</span><button data-k="${si}-${ii}" data-d="-1" aria-label="הפחתה">−</button></div>`}</div>`).join(''),
-  services: s => s.items.map(it => `<div class="card item"><div class="t"><b>${esc(it.name)}</b>${it.desc ? `<small>${esc(it.desc)}</small>` : ''}</div><div class="price">${esc(it.price)}</div></div>`).join(''),
-  schedule: s => `<div class="card">${s.items.map(it => `<div class="row"><b>${esc(it.day)} ${esc(it.time)}</b><span>${esc(it.what)}</span></div>`).join('')}</div>`,
-  hours: s => `<div class="card">${s.items.map(it => `<div class="row"><b>${esc(it.day)}</b><span dir="ltr">${esc(it.open)}–${esc(it.close)}</span></div>`).join('')}</div>`,
-  gallery: s => s.items.length ? `<div class="gallery">${s.items.map(it => `<img src="${esc(it.image)}" alt="${esc(it.name)}" loading="lazy">`).join('')}</div>` : '<p class="muted">עוד לא הועלו תמונות</p>',
-  faq: s => s.items.map(it => `<details class="card"><summary>${esc(it.q)}</summary><p>${esc(it.a)}</p></details>`).join(''),
-  testimonials: s => s.items.map(it => `<blockquote class="card"><p>“${esc(it.text)}”</p><small class="muted">— ${esc(it.who)}</small></blockquote>`).join(''),
-  text: s => `<div class="card text">${nl(s.body)}</div>`,
-};
-// "פתוח עכשיו" לפי שורות השעות (א׳–ה׳, ו׳, מוצ"ש)
-function openNow(rows) {
-  const d = new Date().getDay(), m = new Date().getHours() * 60 + new Date().getMinutes();
-  const days = { 'א': 0, 'ב': 1, 'ג': 2, 'ד': 3, 'ה': 4, 'ו': 5, 'ש': 6 };
-  for (const r of rows) {
-    const k = r.day.replace(/[׳'"]/g, ''); let set = [];
-    if (k.includes('מוצ')) set = [6]; else { const p = k.split(/[–-]/).map(x => days[x.trim()[0]]); set = p.length > 1 ? Array.from({ length: p[1] - p[0] + 1 }, (_, i) => p[0] + i) : [p[0]]; }
-    const [oh, om] = r.open.split(':').map(Number), [ch, cm] = r.close.split(':').map(Number);
-    if (set.includes(d) && m >= oh * 60 + om && m < ch * 60 + cm) return true;
-  }
-  return false;
-}
+let SITE, cart = {}, ORDER = { items: [] };
 function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;
   document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
-  const hours = site.sections.find(s => s.kind === 'hours' && !s.hidden);
-  const isOpen = hours && openNow(hours.items);
-  document.getElementById('app').innerHTML = `<header>
-    ${site.image ? `<img class="hero-img" src="${esc(site.image)}" alt="">` : `<div class="logo" aria-hidden="true">${esc(site.logo)}</div>`}
-    <h1>${esc(site.name)}</h1><p class="sub">${esc(site.tagline)}</p>
-    ${site.badge ? `<span class="badge">${esc(site.badge)}</span>` : ''}
-    ${hours ? `<div class="open ${isOpen ? 'y' : 'n'}">${isOpen ? '● פתוח עכשיו' : '● סגור כעת'}</div>` : ''}</header>
-    ${site.sections.map((s, si) => s.hidden ? '' : `<section><h2>${esc(s.title)}</h2>${R[s.kind](s, si)}</section>`).join('')}
-    <section class="contact"><h2>יצירת קשר</h2><div class="card">
-      ${site.phone ? `<p>טלפון: <a href="tel:+${esc(site.phone)}">0${esc(String(site.phone).replace(/^972/, ''))}</a></p>` : ''}
-      ${site.address ? `<p>כתובת: <a href="https://maps.google.com/?q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener">${esc(site.address)}</a></p>` : ''}
-    </div></section><footer>© ${esc(site.name)}</footer>`;
+  const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
+  app.innerHTML = renderSite(site, false, cart);
   update();
 }
 function update() {
   const lines = []; let sum = 0;
   for (const [k, q] of Object.entries(cart)) if (q) { const [si, ii] = k.split('-'), it = SITE.sections[si].items[ii]; lines.push(`${q} × ${it.name}`); sum += q * it.price; }
   const text = lines.length ? `שלום, אשמח להזמין:\n${lines.join('\n')}\nסה"כ: ${Math.round(sum * 100) / 100} ₪` : `שלום, הגעתי מהאתר של ${SITE.name}`;
-  const a = document.getElementById('cta');
+  const a = document.getElementById('cta'); ORDER = { items: lines, total: Math.round(sum * 100) / 100 };
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
 }
+// טופס השארת פרטים ← נשמר בפניות של בעל העסק
+document.addEventListener('submit', async e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
+  const d = Object.fromEntries(new FormData(f)), btn = f.querySelector('button'); btn.disabled = true;
+  try { await sendLead(slug, 'lead', { ...d, section: SITE.sections[f.dataset.lead].title }); f.innerHTML = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>'; }
+  catch { btn.disabled = false; btn.textContent = 'השליחה נכשלה — נסו שוב'; } });
+// הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
+document.getElementById('cta').addEventListener('click', () => { if (ORDER.items.length && !demo) sendLead(slug, 'order', ORDER).catch(() => {}); });
 document.addEventListener('click', e => { const b = e.target.closest('.qty button'); if (!b) return;
   const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
 
 (async () => {
-  if (demo) return render({ phone: '972500000000', ...PRESETS[demo] });
+  if (demo) return render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') });
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
   const fresh = await window.loadSite(slug).catch(() => null);

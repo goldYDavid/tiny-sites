@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ניהול העסק</title>
+<link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
+<style>
+:root{--bg:#f5f3ef;--card:#fff;--ink:#222;--muted:#777;--line:#e2ddd5;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Segoe UI",Arial,sans-serif}
+.wrap{max-width:720px;margin:auto;padding:16px 16px 60px}
+h1{font-size:22px;margin:8px 0 16px}h2{font-size:18px;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 2px}
+input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input[type=color]{height:44px;padding:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:var(--muted)}small{display:block}
+.page{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.page:first-of-type{border:0}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.types button{padding:12px;text-align:center}.types button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
+#msg{text-align:center;font-weight:700;min-height:22px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">טוען…</div>
+<script src="config.js"></script>
+<script src="presets.js"></script>
+<script src="admin-lib.js"></script>
+<script>
+// ניהול: הגדרות כלליות של העסק + רשימת הדפים + יצירת דף חדש (עד מכסת החבילה)
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+let BIZ, PAGES, NEWLEADS = 0, TYPE = 'seasonal';
+
+function draw() {
+  const s = BIZ.settings, L = BIZ.page_limit, can = PAGES.length < L;
+  $('app').innerHTML = `<h1>ניהול העסק</h1><div id="msg"></div>
+  <a class="card head" style="display:flex;text-decoration:none;color:inherit" href="${href('leads.html')}"><h2>📥 פניות והזמנות</h2><span class="${NEWLEADS ? 'primary btn' : 'muted'}">${NEWLEADS ? NEWLEADS + ' חדשות' : 'אין חדשות'} ←</span></a>
+  <div class="card"><h2>הגדרות העסק</h2><small class="muted">מופיעות בכל הדפים שלך</small>
+    <div class="grid2"><div><label>שם העסק</label><input id="b_name" value="${esc(s.name)}"></div>
+      <div><label>לוגו (אימוג'י או אות)</label><input id="b_logo" value="${esc(s.logo)}" maxlength="4"></div>
+      <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
+      <div><label>צבע ראשי</label><input id="b_accent" type="color" value="${esc(s.accent || '#c8741a')}"></div></div>
+    <label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}">
+    <div class="tools"><button class="primary" id="saveBiz">שמירת ההגדרות</button></div></div>
+  <div class="card"><div class="head"><h2>הדפים שלי</h2><span class="muted">${PAGES.length} מתוך ${L} בחבילה</span></div>
+    ${PAGES.length ? PAGES.map(p => `<div class="page"><div><b>${esc(p.content.tagline || (PRESETS[p.content.type] || {}).label || p.slug)}</b>
+      <small class="muted" dir="ltr">${esc(p.slug)} · ${esc(TEMPLATES_LABEL[p.content.template] || 'קלאסי')}</small></div>
+      <div class="tools" style="margin:0"><a class="btn primary" href="${href('edit.html', 's=' + encodeURIComponent(p.slug))}">עריכה</a>
+      <a class="btn" href="${href('index.html', 's=' + encodeURIComponent(p.slug))}" target="_blank">צפייה</a>
+      <button data-del="${esc(p.slug)}">מחיקה</button></div></div>`).join('') : '<p class="muted">עוד אין דפים — צרו את הראשון למטה</p>'}</div>
+  <div class="card"><h2>דף חדש</h2>
+    ${can ? `<label>סוג הדף</label><div class="types">${Object.entries(PRESETS).map(([k, p]) => `<button data-type="${k}" aria-pressed="${k === TYPE}">${p.logo}<br>${p.label}</button>`).join('')}</div>
+      <label>כתובת הדף (אותיות באנגלית, מספרים ומקף)</label><input id="slug" dir="ltr" placeholder="my-shop" autocapitalize="off">
+      <div class="tools"><button class="primary" id="create">יצירת הדף ומעבר לעריכה</button></div>`
+    : `<p>החבילה שלך כוללת ${L} ${L === 1 ? 'דף' : 'דפים'}, וכולם בשימוש.</p><p class="muted">לדף נוסף צריך לשדרג חבילה${window.SALES_PHONE ? '' : ' — פנו אלינו'}.</p>
+      ${window.SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}?text=${encodeURIComponent('שלום, אשמח לשדרג חבילה ולהוסיף דף')}">בקשת שדרוג בוואטסאפ</a>` : ''}`}</div>`;
+}
+const TEMPLATES_LABEL = { classic: 'קלאסי', bold: 'בולט', minimal: 'נקי' };
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.type) { TYPE = b.dataset.type; document.querySelectorAll('[data-type]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  if (b.id === 'saveBiz') {
+    const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo').value.trim(), accent: $('b_accent').value,
+      phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
+    try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('שגיאה בשמירה: ' + err.message); }
+  }
+  if (b.id === 'create') {
+    const slug = $('slug').value.trim().toLowerCase();
+    if (!/^[a-z0-9-]{3,40}$/.test(slug)) return msg('כתובת: 3–40 תווים, אותיות באנגלית, מספרים ומקף');
+    const { label, name, phone, address, accent, logo, ...content } = structuredClone(PRESETS[TYPE]);
+    content.type = TYPE; content.template = 'classic';
+    try {
+      await DB.addPage(slug, content);
+      // עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
+      if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
+      location.href = href('edit.html', 's=' + slug);
+    } catch (err) { msg(/duplicate|unique/i.test(err.message) ? 'הכתובת הזו כבר תפוסה — נסו אחרת' : /limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message); }
+  }
+  if (b.dataset.del && confirm('למחוק את הדף לצמיתות?')) {
+    try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('שגיאה: ' + err.message); }
+  }
+});
+
+(async () => {
+  if (!(await connect())) return;
+  [BIZ, PAGES] = await Promise.all([DB.biz(), DB.pages()]);
+  draw(); DB.leads().then(l => { NEWLEADS = l.filter(x => x.status === 'new').length; if (NEWLEADS) draw(); }).catch(() => {});  // לא מעכב את המסך
+})();
+</script>
+</body>
+</html>

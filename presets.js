@@ -1,5 +1,5 @@
 // תבניות התחלה לכל סוג עסק. בעל העסק מתחיל מאחת מהן ועורך בעמוד העריכה.
-// סוגי מקטעים: products (מחירון עם עגלה), services, schedule, hours, gallery, faq, testimonials, text
+// סוגי מקטעים: products (מחירון עם עגלה), services, schedule, hours, gallery, faq, testimonials, text, lead (טופס השארת פרטים)
 window.PRESETS = {
   seasonal: { label: 'מוכר עונתי עם מחירון', accent: '#c8741a', logo: '🕎',
     name: 'שם העסק', tagline: 'מוצרי חנוכה איכותיים במחירים הוגנים', badge: 'הזמנות עד כ"ב כסליו', cta: 'הזמנה בוואטסאפ',
@@ -45,7 +45,8 @@ window.PRESETS = {
       { kind: 'text', title: 'הסמכות', body: 'מוסמך ע"י ...\nניסיון של X שנים' },
       { kind: 'faq', title: 'שאלות נפוצות', items: [
         { q: 'כל כמה זמן בודקים מזוזות?', a: 'פעמיים בשבע שנים.' },
-        { q: 'אפשר להביא ולאסוף מהבית?', a: 'כן, בתיאום מראש.' }] }] },
+        { q: 'אפשר להביא ולאסוף מהבית?', a: 'כן, בתיאום מראש.' }] },
+      { kind: 'lead', title: 'השאירו פרטים', body: 'נחזור אליכם בהקדם', button: 'שליחה' }] },
 
   travel: { label: 'נסיעות וחבילות', accent: '#6b3fa0', logo: '✈️',
     name: 'נסיעות לרבי', tagline: 'חבילות טיסה ולינה לכינוס השלוחים', badge: 'מקומות אחרונים', cta: 'הרשמה בוואטסאפ',
@@ -54,7 +55,8 @@ window.PRESETS = {
         { name: 'טיסה ישירה בלבד', desc: 'הלוך-חזור, כבודה 23 ק"ג', price: '$899' },
         { name: 'טיסה + לינה שבוע', desc: 'דירה 2 דקות מ-770', price: '$1,390' }] },
       { kind: 'text', title: 'מה כלול', body: 'טיסה ישירה\nהסעה משדה התעופה\nכרטיס SIM מקומי' },
-      { kind: 'faq', title: 'שאלות נפוצות', items: [{ q: 'אפשר לשלם בתשלומים?', a: 'כן, עד 6 תשלומים.' }] }] },
+      { kind: 'faq', title: 'שאלות נפוצות', items: [{ q: 'אפשר לשלם בתשלומים?', a: 'כן, עד 6 תשלומים.' }] },
+      { kind: 'lead', title: 'השאירו פרטים', body: 'נחזור אליכם בהקדם', button: 'שליחה' }] },
 
   classes: { label: 'שיעורים וחוגים', accent: '#0f7c8c', logo: '📚',
     name: 'שם החוג / המורה', tagline: 'שיעורים בקבוצות קטנות ובאווירה טובה', badge: 'שיעור ניסיון חינם', cta: 'הרשמה בוואטסאפ',
@@ -63,12 +65,14 @@ window.PRESETS = {
         { day: 'ראשון', time: '16:00', what: 'גילאי 6–8' }, { day: 'שלישי', time: '17:30', what: 'גילאי 9–12' }] },
       { kind: 'services', title: 'מחירים', items: [{ name: 'מנוי חודשי', desc: 'שיעור בשבוע', price: '180 ₪' }] },
       { kind: 'text', title: 'על המורה', body: 'כמה שורות על הניסיון והגישה.' },
-      { kind: 'testimonials', title: 'הורים מספרים', items: [{ text: 'הילדים מחכים לחוג כל שבוע', who: 'רבקה' }] }] },
+      { kind: 'testimonials', title: 'הורים מספרים', items: [{ text: 'הילדים מחכים לחוג כל שבוע', who: 'רבקה' }] },
+      { kind: 'lead', title: 'השאירו פרטים', body: 'נחזור אליכם בהקדם', button: 'שליחה' }] },
 
   rental: { label: 'השכרת דירה', accent: '#8a5a2b', logo: '🏡',
     name: 'דירת אירוח בנחלה', tagline: 'דירה מרווחת לשבתות וחגים', badge: 'פנוי לשבת הקרובה', cta: 'בדיקת תאריכים',
     sections: [
       { kind: 'gallery', title: 'תמונות', items: [] },
       { kind: 'text', title: 'מה יש בדירה', body: '3 חדרים, 8 מיטות\nפלטה ומיחם לשבת\n2 דקות מבית הכנסת' },
-      { kind: 'services', title: 'מחירים', items: [{ name: 'שבת', desc: 'שישי 12:00 עד מוצ"ש', price: '650 ₪' }] }] },
+      { kind: 'services', title: 'מחירים', items: [{ name: 'שבת', desc: 'שישי 12:00 עד מוצ"ש', price: '650 ₪' }] },
+      { kind: 'lead', title: 'השאירו פרטים', body: 'נחזור אליכם בהקדם', button: 'שליחה' }] },
 };
