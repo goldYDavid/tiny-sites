@@ -91,13 +91,19 @@ document.addEventListener('click', async e => {
   if (b.dataset.copy) { const u = shareUrl(b.dataset.copy); navigator.clipboard.writeText(u).then(() => msg('הקישור הועתק ✓ אפשר להדביק בוואטסאפ'), () => prompt('הקישור לשיתוף:', u)); }
   if (b.dataset.type) { TYPE = b.dataset.type; document.querySelectorAll('[data-type]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
   if (b.id === 'saveBiz') {
+    const ph = $('b_phone').value.replace(/\D/g, '');
+    if (!$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
+    if (!ph) return bad('b_phone', 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
+    if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05');
     const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo').value.trim(), accent: $('b_accent').value,
       phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
-    try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('שגיאה בשמירה: ' + err.message); }
+    try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
   }
   if (b.id === 'create') {
     const slug = $('slug').value.trim().toLowerCase();
-    if (!/^[a-z0-9-]{3,40}$/.test(slug)) return msg('כתובת: 3–40 תווים, אותיות באנגלית, מספרים ומקף');
+    if (!slug) return bad('slug', 'צריך למלא כתובת לדף, למשל my-shop');
+    if (/[^a-z0-9-]/.test(slug)) return bad('slug', 'בכתובת מותר רק אותיות באנגלית, מספרים ומקף (בלי רווחים ועברית)');
+    if (slug.length < 3 || slug.length > 40) return bad('slug', 'הכתובת צריכה להיות באורך 3 עד 40 תווים');
     const { label, name, phone, address, accent, logo, ...content } = structuredClone(PRESETS[TYPE]);
     content.type = TYPE; content.template = 'classic';
     try {
@@ -105,10 +111,10 @@ document.addEventListener('click', async e => {
       // עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
       if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
       location.href = href('edit.html', 's=' + slug);
-    } catch (err) { msg(/duplicate|unique/i.test(err.message) ? 'הכתובת הזו כבר תפוסה — נסו אחרת' : /limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message); }
+    } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message)); }
   }
   if (b.dataset.del && confirm('למחוק את הדף לצמיתות?')) {
-    try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('שגיאה: ' + err.message); }
+    try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('❌ שגיאה: ' + err.message); }
   }
 });
 

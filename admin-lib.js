@@ -1,7 +1,14 @@
 // משותף לניהול (admin.html) ולעורך הדף (edit.html): כניסה במייל + גישה לנתונים.
 // במצב מקומי (?local) הכול נשמר בדפדפן — לבדיקה בלי שרת.
 const $ = id => document.getElementById(id);
-const msg = t => { const m = $('msg'); if (m) { m.textContent = t; setTimeout(() => m.textContent === t && (m.textContent = ''), 3500); } };
+// הודעה צפה בתחתית המסך — נראית גם כשגוללים למטה בטלפון. שגיאה (❌/⚠️) נשארת יותר זמן
+const msg = t => { let m = $('toast');
+  if (!m) { m = Object.assign(document.createElement('div'), { id: 'toast', role: 'status' }); m.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;max-width:480px;margin:auto;z-index:99;background:#222;color:#fff;font:700 15px/1.4 system-ui,Arial,sans-serif;text-align:center;padding:12px 14px;border-radius:12px;box-shadow:0 6px 20px #0005;transition:opacity .2s'; document.body.append(m); }
+  m.textContent = t; m.style.opacity = 1; m.style.background = /^(❌|⚠️)/.test(t) ? '#b42318' : '#222';
+  clearTimeout(m.t); m.t = setTimeout(() => m.style.opacity = 0, /^(❌|⚠️)/.test(t) ? 6000 : 3000); };
+// שדה שלא מולא נכון: מסגרת אדומה, מעבר לשדה והסבר מה לתקן
+const bad = (id, t) => { const el = $(id); if (el) { el.style.borderColor = '#b42318'; el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.addEventListener('input', () => el.style.borderColor = '', { once: true }); } msg('⚠️ ' + t); return false; };
+const isMail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
 let sb = null, UID = null;
 
@@ -17,13 +24,15 @@ async function connect() {
     <p class="muted">במייל יש קישור "Sign in". לחיצה ארוכה עליו ← העתקת קישור ← הדבקה כאן.</p>
     <label>הקישור (או הקוד) מהמייל</label><input id="code" dir="ltr">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
-  $('send').onclick = async () => { const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
-    error ? msg(/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : error.message)
-          : ($('step2').hidden = false, msg('נשלח מייל')); };
+  $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
+    const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
+    error ? msg('❌ ' + (/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
+          : ($('step2').hidden = false, msg('✓ נשלח מייל — בדקו גם בספאם')); };
   // המייל מכיל קישור עם token — מאמתים אותו כאן במקום לעבור בכתובת החזרה
-  $('ok').onclick = async () => { const v = $('code').value.trim(), th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
+  $('ok').onclick = async () => { if (!$('code').value.trim()) return bad('code', 'צריך להדביק את הקישור מהמייל');
+    const v = $('code').value.trim(), th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
     const { error } = th ? await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' }) : await sb.auth.verifyOtp({ email: $('em').value.trim(), token: v, type: 'email' });
-    error ? msg('הקישור לא תקין או שפג תוקפו — שלחו מייל חדש') : location.reload(); };
+    error ? bad('code', 'הקישור לא תקין או שפג תוקפו — שלחו מייל חדש') : location.reload(); };
   return false;
 }
 

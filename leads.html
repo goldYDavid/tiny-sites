@@ -55,7 +55,7 @@ document.addEventListener('click', async e => {
   try {
     if (b.dataset.st) { const l = LEADS.find(x => x.id == b.dataset.st); l.status = l.status === 'new' ? 'done' : 'new'; await DB.setLead(l.id, l.status); draw(); }
     if (b.dataset.del && confirm('למחוק את הפנייה?')) { await DB.delLead(+b.dataset.del); LEADS = LEADS.filter(x => x.id != b.dataset.del); draw(); msg('נמחק'); }
-  } catch (err) { msg('שגיאה: ' + err.message); }
+  } catch (err) { msg('❌ שגיאה: ' + err.message); }
 });
 (async () => { if (!(await connect())) return; LEADS = await DB.leads(); draw(); })();
 </script>

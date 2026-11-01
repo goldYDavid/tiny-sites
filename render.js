@@ -23,7 +23,7 @@ const RENDER = {
     : `<details class="card"><summary>${esc(it.q)}</summary><p>${esc(it.a)}</p></details>`).join(''),
   testimonials: (s, si, ed) => s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<blockquote class="card"><p>“${T(ed, p + 'text', it.text, 'מה אמרו')}”</p><small class="muted">— ${T(ed, p + 'who', it.who, 'מי')}</small>${TOOLS(ed, si, ii)}</blockquote>`).join(''),
   lead: (s, si, ed) => `<form class="card lead" data-lead="${si}">${s.body || ed ? `<p>${T(ed, `sections.${si}.body`, s.body, 'משפט פתיחה (לא חובה)')}</p>` : ''}
-    <input name="name" placeholder="שם" required ${ed ? 'disabled' : ''}><input name="phone" type="tel" inputmode="tel" placeholder="טלפון" required ${ed ? 'disabled' : ''}>
+    <input name="name" placeholder="שם" required oninvalid="this.setCustomValidity('צריך למלא שם')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}><input name="phone" type="tel" inputmode="tel" placeholder="טלפון" required pattern="[0-9 +\\-]{9,15}" title="מספר טלפון, למשל 0501234567" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}>
     <textarea name="message" placeholder="הודעה (לא חובה)" ${ed ? 'disabled' : ''}></textarea>
     ${ed ? `<span class="lead-btn">${T(ed, `sections.${si}.button`, s.button, 'טקסט הכפתור')}</span>` : `<button class="lead-btn">${esc(s.button || 'שליחה')}</button>`}</form>`,
   text: (s, si, ed) => `<div class="card text">${ed ? T(ed, `sections.${si}.body`, s.body, 'כתבו כאן (כל שורה בנפרד)', 'ed-body') : nl(s.body)}</div>`,
