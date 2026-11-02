@@ -75,3 +75,11 @@ header .ed-ph{aspect-ratio:16/9;margin-top:16px;border-radius:18px}
 .draft{position:sticky;top:0;z-index:9;background:#b54708;color:#fff;text-align:center;font-weight:700;font-size:14px;padding:8px;margin:0 -16px 8px;border-radius:0 0 10px 10px}
 .logo-img{object-fit:contain;background:#fff;padding:8px;border:1px solid var(--line)}
 input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:right}  /* טקסט המילוי (placeholder) בעברית — מימין, גם בשדות שמקלידים בהם באנגלית */
+/* סגנונות תצוגה למחירון */
+.items.v-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v-grid .card{margin:0}
+.v-grid .item,.v-big .item{flex-direction:column;align-items:stretch;text-align:center}
+.v-grid .item img,.v-big .item img{width:100%;height:auto;border-radius:12px}.v-grid .item img{aspect-ratio:1}.v-big .item img{aspect-ratio:4/3}
+.v-grid .ed-img,.v-big .ed-img{width:100%}.v-grid .qty,.v-big .qty{justify-content:center}
+.v-big .t b{font-size:18px}
+.wrap:not(.ed) .v-text .item img{display:none}
+.ed-sec select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--bg);color:var(--ink)}

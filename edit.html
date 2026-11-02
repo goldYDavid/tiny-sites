@@ -60,6 +60,7 @@ document.addEventListener('input', e => { const el = e.target.closest('[data-p]'
 // Enter בשדה של שורה אחת = סיום עריכה
 document.addEventListener('keydown', e => { const el = e.target.closest('[data-p]'); if (el && e.key === 'Enter' && !el.classList.contains('ed-body')) { e.preventDefault(); el.blur(); } });
 document.addEventListener('change', async e => {
+  if (e.target.dataset.view !== undefined) { C.sections[+e.target.dataset.view].view = e.target.value; changed(); return draw(); }  // סגנון תצוגת המחירון
   const p = e.target.dataset.img; if (!p || !e.target.files[0]) return;
   msg('מעלה תמונה…'); try { setPath(C, p, await DB.upload(slug, await shrink(e.target.files[0]))); changed(); draw(); msg('התמונה הועלתה ✓ — לחצו "שמירה"'); } catch (err) { msg('❌ שגיאה בהעלאה: ' + err.message); }
 });
