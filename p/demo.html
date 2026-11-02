@@ -29,7 +29,7 @@ function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;
   document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
   const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
-  app.innerHTML = renderSite(site, false, cart);
+  app.innerHTML = (site.draft ? '<div class="draft">טיוטה — הדף עוד לא מפורסם, ורק אתם רואים אותו</div>' : '') + renderSite(site, false, cart);
   update();
 }
 function update() {
@@ -39,13 +39,15 @@ function update() {
   const a = document.getElementById('cta'); ORDER = { items: lines, total: Math.round(sum * 100) / 100 };
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
+  if (demo) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? מתחילים בחינם ←'; }  // דף לדוגמה ← הרשמה
 }
 // טופס השארת פרטים ← נשמר בפניות של בעל העסק + נפתחת הודעת וואטסאפ מוכנה אליו (כדי שיידע מיד)
 document.addEventListener('submit', e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
   const { website, ...d } = Object.fromEntries(new FormData(f)), section = SITE.sections[f.dataset.lead].title;
   const thanks = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>';
   if (website) return f.innerHTML = thanks;  // שדה נסתר שרק תוכנות ספאם ממלאות
-  if (!demo) sendLead(slug, 'lead', { ...d, section }).catch(() => {});
+  if (demo) return f.innerHTML = thanks + '<p class="muted">זו דוגמה — בדף שלכם הפנייה תגיע אליכם לוואטסאפ ולמסך הניהול</p>';
+  sendLead(slug, 'lead', { ...d, section }).catch(() => {});
   const text = `שלום, השארתי פרטים באתר (${section}):\nשם: ${d.name}\nטלפון: ${d.phone}${d.message ? '\n' + d.message : ''}`;
   window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
@@ -55,14 +57,15 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
   const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
 
 (async () => {
-  if (demo) return render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') });
+  if (demo) { render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') }); return document.getElementById('app').insertAdjacentHTML('afterbegin', '<div class="draft" style="background:#2563eb">דף לדוגמה — כך ייראה הדף של העסק שלכם</div>'); }
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
-  const fresh = await window.loadSite(slug).catch(() => null);
+  const fresh = await window.loadSite(slug).catch(() => 'offline');  // בלי רשת ← נשארים עם העותק השמור
   if (fresh && fresh.paused) { try { localStorage.removeItem(key); } catch {} document.title = fresh.name || 'הדף בהשהיה';
     document.querySelector('.bar').remove(); return document.getElementById('app').innerHTML = '<p class="paused">הדף בהשהיה זמנית</p>'; }
+  if (fresh === 'offline') { if (!SITE) document.getElementById('app').innerHTML = '<p class="paused">אין חיבור לאינטרנט — נסו שוב</p>'; return; }
   if (fresh) { try { localStorage.setItem(key, JSON.stringify(fresh)); } catch {} if (JSON.stringify(fresh) !== JSON.stringify(SITE)) render(fresh); }
-  else if (!SITE) document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center">הדף לא נמצא</p>';
+  else { try { localStorage.removeItem(key); } catch {} document.querySelector('.bar').remove(); document.getElementById('app').innerHTML = '<p class="paused">הדף לא זמין כרגע</p>'; }  // לא קיים / לא מפורסם
 })();
 </script>
 </body>
