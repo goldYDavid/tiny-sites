@@ -99,7 +99,7 @@ document.addEventListener('click', async e => {
 
 (async () => {
   if (!window.SUPABASE_URL) return $('app').textContent = 'הניהול הראשי עובד רק מול השרת';
-  if (!(await connect())) return;
+  if (!(await connect(true))) return;
   if (!(await DB.isAdmin())) { const { data: { session } } = await sb.auth.getSession();
     $('app').innerHTML = `<h1>אין הרשאה</h1><p class="muted">העמוד מיועד למנהלי המערכת בלבד. מחובר כרגע: <b dir="ltr">${esc(session?.user?.email || '')}</b></p>
       <div class="tools"><button class="primary" id="out">יציאה וכניסה עם מייל אחר</button></div>`;

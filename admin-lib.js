@@ -13,24 +13,25 @@ const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?
 let sb = null, UID = null, EMAIL = '';
 
 // מחזיר true כשמחוברים; אחרת מציג מסך כניסה ב-#app ומחזיר false
-async function connect() {
+// admin=true (ניהול ראשי): כניסה בלבד — בלי הרשמה ובלי טקסט לבעלי עסקים
+async function connect(admin = false) {
   if (!window.SUPABASE_URL) return true;
   await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; sc.onload = r; document.head.append(sc); });
   // storageKey נפרד: באותו דומיין רצה גם אפליקציית הסנדוויצים (אותו שרת) — בלי זה החיבור שלה נכנס גם לכאן
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' } });
   const { data: { session } } = await sb.auth.getSession();
   if (session) { UID = session.user.id; EMAIL = session.user.email; return true; }
-  $('app').innerHTML = `<h1>כניסה או הרשמה</h1><div class="card"><p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p><label>המייל שלך</label><input id="em" type="email" inputmode="email">
+  $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email">
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
   // קוד מלא (8 ספרות — לפי ההגדרה ב-Supabase) ← כניסה אוטומטית
   $('code').addEventListener('input', () => { if (/^\d{8}$/.test($('code').value.trim())) $('ok').click(); });
   $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
-    const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: true, emailRedirectTo: location.href } });
+    const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: !admin, emailRedirectTo: location.href } });
     const sec = (error?.message.match(/after (\d+) seconds/) || [])[1];  // בין שני קודים לאותו מייל צריך לחכות דקה
     if (sec) $('step2').hidden = false;  // הקוד הקודם עדיין בדרך — משאירים את שדה הקוד
-    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
+    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup/i.test(error.message) ? 'המייל הזה לא מוגדר כמנהל' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
           : ($('step2').hidden = false, $('code').focus(), msg('✓ נשלח קוד למייל — בדקו גם בספאם')); };
   // כניסה עם הקוד מהמייל (נשאר גם קישור מודבק, למי שהדביק קישור)
   $('ok').onclick = async () => { const v = $('code').value.trim(); if (!v) return bad('code', 'צריך להקליד את הקוד מהמייל');
