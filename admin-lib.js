@@ -21,19 +21,19 @@ async function connect() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) { UID = session.user.id; return true; }
   $('app').innerHTML = `<h1>כניסה לניהול</h1><div class="card"><label>המייל שלך</label><input id="em" type="email" inputmode="email">
-    <div class="tools"><button class="primary" id="send">שליחת מייל כניסה</button></div><div id="step2" hidden>
-    <p class="muted">במייל יש קישור "Sign in". לחיצה ארוכה עליו ← העתקת קישור ← הדבקה כאן.</p>
-    <label>הקישור (או הקוד) מהמייל</label><input id="code" dir="ltr">
+    <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
+    <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
+  $('code').addEventListener('input', () => { const v = $('code').value.replace(/\D/g, ''); if (v.length >= 6 && v.length === $('code').value.trim().length) $('ok').click(); });  // קוד מלא ← כניסה אוטומטית
   $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
     const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
     error ? msg('❌ ' + (/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
-          : ($('step2').hidden = false, msg('✓ נשלח מייל — בדקו גם בספאם')); };
-  // המייל מכיל קישור עם token — מאמתים אותו כאן במקום לעבור בכתובת החזרה
-  $('ok').onclick = async () => { if (!$('code').value.trim()) return bad('code', 'צריך להדביק את הקישור מהמייל');
-    const v = $('code').value.trim(), th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
-    const { error } = th ? await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' }) : await sb.auth.verifyOtp({ email: $('em').value.trim(), token: v, type: 'email' });
-    error ? bad('code', 'הקישור לא תקין או שפג תוקפו — שלחו מייל חדש') : location.reload(); };
+          : ($('step2').hidden = false, $('code').focus(), msg('✓ נשלח קוד למייל — בדקו גם בספאם')); };
+  // כניסה עם הקוד מהמייל (נשאר גם קישור מודבק, למי שהדביק קישור)
+  $('ok').onclick = async () => { const v = $('code').value.trim(); if (!v) return bad('code', 'צריך להקליד את הקוד מהמייל');
+    const th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
+    const { error } = th ? await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' }) : await sb.auth.verifyOtp({ email: $('em').value.trim(), token: v.replace(/\s/g, ''), type: 'email' });
+    error ? bad('code', /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'הקוד לא נכון או שפג תוקפו — בדקו שוב או שלחו קוד חדש') : location.reload(); };
   return false;
 }
 
