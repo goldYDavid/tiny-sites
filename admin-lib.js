@@ -24,7 +24,8 @@ async function connect() {
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
-  $('code').addEventListener('input', () => { const v = $('code').value.replace(/\D/g, ''); if (v.length >= 6 && v.length === $('code').value.trim().length) $('ok').click(); });  // קוד מלא ← כניסה אוטומטית
+  // קוד מלא (8 ספרות — לפי ההגדרה ב-Supabase) ← כניסה אוטומטית
+  $('code').addEventListener('input', () => { if (/^\d{8}$/.test($('code').value.trim())) $('ok').click(); });
   $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
     const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
     error ? msg('❌ ' + (/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
