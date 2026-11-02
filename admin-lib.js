@@ -51,17 +51,22 @@ const DB = {
     if (!sb) return LS.get('pages', []).map(slug => ({ slug, content: LS.get('draft:' + slug, {}) }));
     const { data, error } = await sb.from('sites').select('slug,content').eq('owner', UID).order('slug'); if (error) throw error; return data;
   },
+  // דף + הגדרות העסק שלו (גם כשמנהל עורך דף של לקוח). שמירה מותרת רק לבעל הדף או למנהל — לפי ההרשאות בשרת
   async page(slug) {
-    if (!sb) return LS.get('draft:' + slug, null);
-    const { data } = await sb.from('sites').select('content').eq('slug', slug).eq('owner', UID).maybeSingle(); return data && data.content;
+    if (!sb) { const c = LS.get('draft:' + slug, null); return c && { content: c, biz: await DB.biz() }; }
+    const { data } = await sb.from('sites').select('content,owner,businesses(settings)').eq('slug', slug).maybeSingle();
+    if (!data || (data.owner !== UID && !(await DB.isAdmin()))) return null;
+    return { content: data.content, biz: data.businesses || { settings: {} } };
   },
+  async isAdmin() { if (!sb) return false; const { data } = await sb.rpc('is_admin'); return !!data; },
   async addPage(slug, content) {
     if (!sb) { const p = LS.get('pages', []); if (p.includes(slug)) throw new Error('duplicate'); if (p.length >= LS.get('limit', 1)) throw new Error('limit'); LS.set('pages', [...p, slug]); return LS.set('draft:' + slug, content); }
     const { error } = await sb.from('sites').insert({ slug, owner: UID, content }); if (error) throw error;
   },
   async savePage(slug, content) {
     if (!sb) return LS.set('draft:' + slug, content);
-    const { error } = await sb.from('sites').update({ content, updated_at: new Date().toISOString() }).eq('slug', slug); if (error) throw error;
+    const { data, error } = await sb.from('sites').update({ content, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug'); if (error) throw error;
+    if (!data.length) throw new Error('אין הרשאה לשמור את הדף הזה');
   },
   async delPage(slug) {
     if (!sb) { LS.set('pages', LS.get('pages', []).filter(s => s !== slug)); return localStorage.removeItem('draft:' + slug); }
