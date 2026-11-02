@@ -74,3 +74,4 @@ header .ed-ph{aspect-ratio:16/9;margin-top:16px;border-radius:18px}
 .lead .ok{color:#1f8a4c;font-weight:700;text-align:center}
 .draft{position:sticky;top:0;z-index:9;background:#b54708;color:#fff;text-align:center;font-weight:700;font-size:14px;padding:8px;margin:0 -16px 8px;border-radius:0 0 10px 10px}
 .logo-img{object-fit:contain;background:#fff;padding:8px;border:1px solid var(--line)}
+input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:right}  /* טקסט המילוי (placeholder) בעברית — מימין, גם בשדות שמקלידים בהם באנגלית */
