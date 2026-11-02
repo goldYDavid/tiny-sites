@@ -23,9 +23,11 @@ const RENDER = {
     : `<details class="card"><summary>${esc(it.q)}</summary><p>${esc(it.a)}</p></details>`).join(''),
   testimonials: (s, si, ed) => s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<blockquote class="card"><p>“${T(ed, p + 'text', it.text, 'מה אמרו')}”</p><small class="muted">— ${T(ed, p + 'who', it.who, 'מי')}</small>${TOOLS(ed, si, ii)}</blockquote>`).join(''),
   lead: (s, si, ed) => `<form class="card lead" data-lead="${si}">${s.body || ed ? `<p>${T(ed, `sections.${si}.body`, s.body, 'משפט פתיחה (לא חובה)')}</p>` : ''}
-    <input name="name" placeholder="שם" required oninvalid="this.setCustomValidity('צריך למלא שם')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}><input name="phone" type="tel" inputmode="tel" placeholder="טלפון" required pattern="[0-9 +\\-]{9,15}" title="מספר טלפון, למשל 0501234567" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}>
-    <textarea name="message" placeholder="הודעה (לא חובה)" ${ed ? 'disabled' : ''}></textarea>
-    ${ed ? `<span class="lead-btn">${T(ed, `sections.${si}.button`, s.button, 'טקסט הכפתור')}</span>` : `<button class="lead-btn">${esc(s.button || 'שליחה')}</button>`}</form>`,
+    <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <input name="name" placeholder="שם" aria-label="שם" autocomplete="name" required oninvalid="this.setCustomValidity('צריך למלא שם')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}><input name="phone" type="tel" inputmode="tel" placeholder="טלפון" aria-label="טלפון" autocomplete="tel" required pattern="[0-9 +\\-]{9,15}" title="מספר טלפון, למשל 0501234567" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')" ${ed ? 'disabled' : ''}>
+    <textarea name="message" placeholder="הודעה (לא חובה)" aria-label="הודעה (לא חובה)" ${ed ? 'disabled' : ''}></textarea>
+    ${ed ? `<span class="lead-btn">${T(ed, `sections.${si}.button`, s.button, 'טקסט הכפתור')}</span>` : `<button class="lead-btn">${esc(s.button || 'שליחה')}</button>`}
+    <small class="muted">הפרטים נשלחים לבעל העסק כדי שיחזור אליכם. <a href="legal.html#privacy" target="_blank">פרטיות</a></small></form>`,
   text: (s, si, ed) => `<div class="card text">${ed ? T(ed, `sections.${si}.body`, s.body, 'כתבו כאן (כל שורה בנפרד)', 'ed-body') : nl(s.body)}</div>`,
 };
 // "פתוח עכשיו" לפי שורות השעות (א׳–ה׳, ו׳, מוצ"ש)
@@ -60,5 +62,5 @@ window.renderSite = (site, ed = false, cart = {}) => {
       ${site.phone ? `<p>טלפון: <a href="tel:+${esc(site.phone)}">0${esc(String(site.phone).replace(/^972/, ''))}</a></p>` : ''}
       ${site.address ? `<p>כתובת: <a href="https://maps.google.com/?q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener">${esc(site.address)}</a></p>` : ''}
     </div></section>
-    ${ed ? `<section><h2>הכפתור הירוק למטה</h2><div class="card">${T(ed, 'cta', site.cta, 'טקסט הכפתור (למשל "הזמנה בוואטסאפ")')}</div></section>` : `<footer>© ${esc(site.name)}</footer>`}`;
+    ${ed ? `<section><h2>הכפתור הירוק למטה</h2><div class="card">${T(ed, 'cta', site.cta, 'טקסט הכפתור (למשל "הזמנה בוואטסאפ")')}</div></section>` : `<footer>© ${esc(site.name)} · <a href="legal.html#access">הצהרת נגישות</a> · <a href="legal.html#privacy">פרטיות</a> · <a href="legal.html#terms">תנאי שימוש</a></footer>`}`;
 };

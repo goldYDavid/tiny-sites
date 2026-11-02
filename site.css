@@ -66,6 +66,8 @@ header .ed-ph{aspect-ratio:16/9;margin-top:16px;border-radius:18px}
 
 /* טופס השארת פרטים */
 .lead{display:grid;gap:8px}.lead p{margin:0}
+.lead .hp{position:absolute;width:1px!important;height:1px;padding:0!important;border:0!important;overflow:hidden;clip-path:inset(50%);opacity:0}.lead small{font-size:12px}.lead a,footer a{color:inherit}
+.paused{padding:60px 20px;text-align:center}
 .lead input,.lead textarea{width:100%;font:inherit;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
 .lead textarea{min-height:80px}
 .lead-btn{display:block;text-align:center;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer}

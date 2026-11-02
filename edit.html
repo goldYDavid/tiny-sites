@@ -87,7 +87,7 @@ addEventListener('beforeunload', e => { if (dirty) e.preventDefault(); });
   $('back').href = href('admin.html'); $('view').href = href('index.html', 's=' + encodeURIComponent(slug));
   if (!(await connect())) return;
   [BIZ, C] = await Promise.all([DB.biz(), DB.page(slug)]);
-  if (!C || !C.sections) return $('app').innerHTML = `<p>הדף לא נמצא. <a href="${href('admin.html')}">חזרה לניהול</a></p>`;
+  if (!BIZ || !C || !C.sections) return $('app').innerHTML = `<p>הדף לא נמצא. <a href="${href('admin.html')}">חזרה לניהול</a></p>`;
   $('top').hidden = false; draw();
 })();
 </script>

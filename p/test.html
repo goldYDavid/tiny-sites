@@ -40,11 +40,15 @@ function update() {
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
 }
-// טופס השארת פרטים ← נשמר בפניות של בעל העסק
-document.addEventListener('submit', async e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
-  const d = Object.fromEntries(new FormData(f)), btn = f.querySelector('button'); btn.disabled = true;
-  try { await sendLead(slug, 'lead', { ...d, section: SITE.sections[f.dataset.lead].title }); f.innerHTML = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>'; }
-  catch { btn.disabled = false; btn.textContent = 'השליחה נכשלה — נסו שוב'; } });
+// טופס השארת פרטים ← נשמר בפניות של בעל העסק + נפתחת הודעת וואטסאפ מוכנה אליו (כדי שיידע מיד)
+document.addEventListener('submit', e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
+  const { website, ...d } = Object.fromEntries(new FormData(f)), section = SITE.sections[f.dataset.lead].title;
+  const thanks = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>';
+  if (website) return f.innerHTML = thanks;  // שדה נסתר שרק תוכנות ספאם ממלאות
+  if (!demo) sendLead(slug, 'lead', { ...d, section }).catch(() => {});
+  const text = `שלום, השארתי פרטים באתר (${section}):\nשם: ${d.name}\nטלפון: ${d.phone}${d.message ? '\n' + d.message : ''}`;
+  window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
 // הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
 document.getElementById('cta').addEventListener('click', () => { if (ORDER.items.length && !demo) sendLead(slug, 'order', ORDER).catch(() => {}); });
 document.addEventListener('click', e => { const b = e.target.closest('.qty button'); if (!b) return;
@@ -55,6 +59,8 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
   const fresh = await window.loadSite(slug).catch(() => null);
+  if (fresh && fresh.paused) { try { localStorage.removeItem(key); } catch {} document.title = fresh.name || 'הדף בהשהיה';
+    document.querySelector('.bar').remove(); return document.getElementById('app').innerHTML = '<p class="paused">הדף בהשהיה זמנית</p>'; }
   if (fresh) { try { localStorage.setItem(key, JSON.stringify(fresh)); } catch {} if (JSON.stringify(fresh) !== JSON.stringify(SITE)) render(fresh); }
   else if (!SITE) document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center">הדף לא נמצא</p>';
 })();

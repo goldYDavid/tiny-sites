@@ -37,11 +37,10 @@ async function connect() {
 }
 
 const DB = {
-  // הגדרות העסק + מכסת הדפים (נוצר בכניסה הראשונה)
+  // הגדרות העסק + מכסת הדפים. העסק נפתח רק על ידינו (אחרי תשלום) — אין עסק ← null
   async biz() {
     if (!sb) return { settings: LS.get('biz', {}), page_limit: LS.get('limit', 1), renews_at: LS.get('renews', null) };
-    let { data } = await sb.from('businesses').select('settings,page_limit,renews_at').eq('owner', UID).maybeSingle();
-    if (!data) { await sb.from('businesses').insert({ owner: UID, settings: {} }); data = { settings: {}, page_limit: 1, renews_at: null }; }
+    const { data, error } = await sb.from('businesses').select('settings,page_limit,renews_at').eq('owner', UID).maybeSingle(); if (error) throw error;
     return data;
   },
   async saveBiz(settings) {

@@ -6,10 +6,15 @@ window.SALES_PHONE = '972584433453';  // וואטסאפ שלנו — בעל עס
 if (new URLSearchParams(location.search).has('local')) window.SUPABASE_URL = '';  // ?local — בדיקה בלי שרת
 
 // דף = הגדרות העסק (שם, טלפון, צבע...) + תוכן הדף. בקשה אחת לשרת.
+// לא חודש: 14 יום אחרי תאריך החידוש הדף מוצג כ"בהשהיה" ({ paused: true })
+const GRACE_DAYS = 14;
 window.loadSite = async slug => {
   if (!window.SUPABASE_URL) { const l = localStorage.getItem('draft:' + slug); return l ? { ...JSON.parse(localStorage.getItem('biz') || '{}'), ...JSON.parse(l) } : null; }
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/sites?slug=eq.${encodeURIComponent(slug)}&select=content,businesses(settings)`, { headers: { apikey: SUPABASE_KEY, 'Accept-Profile': 'tiny' } });
-  const [row] = await r.json(); return row && row.content.sections ? { ...(row.businesses || {}).settings, ...row.content } : null;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/sites?slug=eq.${encodeURIComponent(slug)}&select=content,businesses(settings,renews_at)`, { headers: { apikey: SUPABASE_KEY, 'Accept-Profile': 'tiny' } });
+  const [row] = await r.json(); if (!row || !row.content.sections) return null;
+  const b = row.businesses || {};
+  if (b.renews_at && new Date(b.renews_at).getTime() + GRACE_DAYS * 864e5 < Date.now()) return { paused: true, name: (b.settings || {}).name };
+  return { ...b.settings, ...row.content };
 };
 
 // פנייה/הזמנה מהדף הציבורי ← רשימת הפניות בניהול. keepalive: נשלח גם כשהגולש עובר לוואטסאפ.

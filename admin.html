@@ -121,6 +121,8 @@ document.addEventListener('click', async e => {
 (async () => {
   if (!(await connect())) return;
   [BIZ, PAGES] = await Promise.all([DB.biz(), DB.pages()]);
+  if (!BIZ) return $('app').innerHTML = `<h1>עדיין אין לך דף אצלנו</h1><div class="card"><p>המייל הזה מחובר, אבל עוד לא פתחנו עבורו עסק.</p>
+    <div class="tools"><a class="primary btn" href="https://wa.me/${SALES_PHONE}?text=${encodeURIComponent('שלום, אשמח לפתוח דף לעסק שלי')}" target="_blank">לפתיחת דף — כתבו לנו בוואטסאפ</a></div></div>`;
   draw(); DB.leads().then(l => { NEWLEADS = l.filter(x => x.status === 'new').length; if (NEWLEADS) draw(); }).catch(() => {});  // לא מעכב את המסך
 })();
 </script>
