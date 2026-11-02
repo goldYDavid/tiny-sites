@@ -16,7 +16,8 @@ let sb = null, UID = null;
 async function connect() {
   if (!window.SUPABASE_URL) return true;
   await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; sc.onload = r; document.head.append(sc); });
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' } });
+  // storageKey נפרד: באותו דומיין רצה גם אפליקציית הסנדוויצים (אותו שרת) — בלי זה החיבור שלה נכנס גם לכאן
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' } });
   const { data: { session } } = await sb.auth.getSession();
   if (session) { UID = session.user.id; return true; }
   $('app').innerHTML = `<h1>כניסה לניהול</h1><div class="card"><label>המייל שלך</label><input id="em" type="email" inputmode="email">
