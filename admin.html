@@ -25,6 +25,10 @@ button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);col
 .page{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
 .page:first-of-type{border:0}
 .types{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+/* לוגו וחבילות מילוי */
+.logo-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.logo-prev{width:56px;height:56px;object-fit:contain;border:1px solid var(--line);border-radius:12px;background:#fff}
+.fills{display:grid;gap:8px}.fills button{text-align:right;padding:10px 12px}.fills button[aria-pressed=true]{outline:2px solid var(--accent)}.fills small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.needs{background:#fff4e5;color:#7a3e00;border-radius:10px;padding:10px;margin-top:10px;font-size:14px}.total{margin:12px 0 0;font-size:17px}
 .types button{padding:12px;text-align:center}.types button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 #msg{text-align:center;font-weight:700;min-height:22px}
 </style>
@@ -45,7 +49,7 @@ function draw() {
   <a class="card head" style="display:flex;text-decoration:none;color:inherit" href="${href('leads.html')}"><h2>📥 פניות והזמנות</h2><span class="${NEWLEADS ? 'primary btn' : 'muted'}">${NEWLEADS ? NEWLEADS + ' חדשות' : 'אין חדשות'} ←</span></a>
   <div class="card"><h2>הגדרות העסק</h2><small class="muted">מופיעות בכל הדפים שלך</small>
     <div class="grid2"><div><label>שם העסק</label><input id="b_name" value="${esc(s.name)}"></div>
-      <div><label>לוגו (אימוג'י או אות)</label><input id="b_logo" value="${esc(s.logo)}" maxlength="4"></div>
+      <div><label>לוגו — תמונה (PNG, JPG או SVG), או אימוג'י</label><div class="logo-pick" id="logoPick">${logoPick(s)}</div></div>
       <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
       <div><label>צבע ראשי</label><input id="b_accent" type="color" value="${esc(s.accent || '#c8741a')}"></div></div>
     <label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}">
@@ -69,15 +73,23 @@ function draw() {
       ${upgrades().length ? `<p class="muted">לדף נוסף צריך לשדרג חבילה:</p><div class="tools">${upgrades().join('')}</div>` : `<p class="muted">לדפים נוספים פנו אלינו בוואטסאפ.</p>${SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}">וואטסאפ</a>` : ''}`}`}</div>`;
 }
 // מפורסם = שולם ותאריך החידוש לא עבר לפני יותר מ־14 יום (כמו בשרת). לפני תשלום — טיוטה שרק בעל העסק רואה
-let PUB = false, REQ_PLAN = 1, REQ_FILL = false;
+let PUB = false, REQ_PLAN = 1, REQ_FILL = '';
+// לוגו: תמונה שהועלתה (עם תצוגה והסרה) או אימוג'י/אות
+const logoPick = s => (s.logo_img ? `<img class="logo-prev" src="${esc(s.logo_img)}" alt="הלוגו"><button data-act="rmlogo">הסרת התמונה</button>`
+  : `<input id="b_logo" value="${esc(s.logo)}" maxlength="4" placeholder="🌸" style="width:70px;text-align:center">`)
+  + `<label class="btn">📷 ${s.logo_img ? 'החלפה' : 'העלאת תמונה'}<input type="file" id="logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>`;
 const published = () => !!BIZ.renews_at && new Date(BIZ.renews_at).getTime() + 14 * 864e5 >= Date.now();
 function publishCard() {
   const r = BIZ.request || {}, expired = !!BIZ.renews_at;
-  REQ_PLAN = r.plan || REQ_PLAN; REQ_FILL = !!r.fill;
+  REQ_PLAN = r.plan || REQ_PLAN; REQ_FILL = r.fill === true ? 'full' : r.fill || REQ_FILL;
   return `<div class="card" id="plan" style="border:2px solid var(--accent)"><h2>${expired ? '⏸️ הדף מושהה' : '🚀 פרסום הדף'}</h2>
     <p>${expired ? 'המנוי לא חודש, ולכן הדף לא מוצג לגולשים. התוכן שמור.' : 'הדף עוד לא מפורסם — כרגע רק אתם רואים אותו. בנו את הדף, ואז בחרו חבילה ושלחו בקשת פרסום. אחרי התשלום הדף עולה לאוויר.'}</p>
     <label>חבילה לשנה</label><div class="types">${Object.entries(PLANS).map(([n, p]) => `<button data-plan="${n}" aria-pressed="${+n === REQ_PLAN}">${n === '1' ? 'דף אחד' : n + ' דפים'}<br><b>${p} ₪</b></button>`).join('')}</div>
-    <label style="display:flex;gap:8px;align-items:center;font-size:15px;color:var(--ink);margin-top:12px"><input type="checkbox" id="fill" style="width:auto" ${REQ_FILL ? 'checked' : ''}> אין לי זמן — אשמח שתמלאו בשבילי את כל הדף (בתוספת תשלום)</label>
+    <label>מי ממלא את הדף?</label><div class="fills">
+      <button data-fill="" aria-pressed="${!REQ_FILL}"><b>אני ממלא בעצמי</b><small>בלי תוספת</small></button>
+      ${Object.entries(FILLS).map(([k, f]) => `<button data-fill="${k}" aria-pressed="${REQ_FILL === k}"><b>מילוי ${f.label} · ${f.price} ₪</b><small>אנחנו: ${f.does}</small></button>`).join('')}</div>
+    <div class="needs" ${REQ_FILL ? '' : 'hidden'}>⚠️ <b>את החומרים אתם שולחים לנו בוואטסאפ:</b> ${FILL_NEEDS}. אנחנו מנסחים ומסדרים — לא ממציאים תוכן.</div>
+    <p class="total">סה"כ: <b>${PLANS[REQ_PLAN] + (FILLS[REQ_FILL] ? FILLS[REQ_FILL].price : 0)} ₪</b> <span class="muted">(${PLANS[REQ_PLAN]} ₪ לשנה${FILLS[REQ_FILL] ? ` + ${FILLS[REQ_FILL].price} ₪ מילוי חד־פעמי` : ''})</span></p>
     ${r.at ? `<p class="muted">✓ שלחתם בקשה ב־${new Date(r.at).toLocaleDateString('he-IL')} — נחזור אליכם בהקדם</p>` : ''}
     <div class="tools"><button class="primary" id="publish">${r.at ? 'שליחה חוזרת של הבקשה' : 'שליחת בקשת פרסום בוואטסאפ'}</button></div></div>`;
 }
@@ -100,16 +112,26 @@ function upgrades() {
 const shareUrl = slug => new URL('p/' + slug + '.html', location.href).href;
 const TEMPLATES_LABEL = { classic: 'קלאסי', bold: 'בולט', minimal: 'נקי' };
 
+// העלאת לוגו: תמונה או SVG ← מוקטן ל־512 ונשמר מיד
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'logo_file' || !e.target.files[0]) return; const f = e.target.files[0];
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)) return msg('⚠️ אפשר להעלות רק PNG, JPG או SVG');
+  if (f.size > 8e6) return msg('⚠️ הקובץ גדול מדי — עד 8MB');
+  msg('מעלה את הלוגו…');
+  try { const url = await DB.uploadLogo(await shrink(f, 512)); BIZ.settings = { ...BIZ.settings, logo_img: url }; await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('הלוגו הועלה ✓'); }
+  catch (err) { msg('❌ ההעלאה נכשלה: ' + err.message); }
+});
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.copy) { const u = shareUrl(b.dataset.copy); navigator.clipboard.writeText(u).then(() => msg('הקישור הועתק ✓ אפשר להדביק בוואטסאפ'), () => prompt('הקישור לשיתוף:', u)); }
-  if (b.dataset.plan) { REQ_PLAN = +b.dataset.plan; document.querySelectorAll('[data-plan]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  if (b.dataset.plan) { REQ_PLAN = +b.dataset.plan; $('plan').outerHTML = publishCard(); }  // רק הכרטיס — בלי לאבד שדות שעוד לא נשמרו
+  if (b.dataset.fill !== undefined) { REQ_FILL = b.dataset.fill; $('plan').outerHTML = publishCard(); }
+  if (b.dataset.act === 'rmlogo') { BIZ.settings = { ...BIZ.settings, logo_img: '' }; try { await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('התמונה הוסרה'); } catch (err) { msg('❌ ' + err.message); } }
   if (b.id === 'publish') {
     if (!BIZ.settings.name || !BIZ.settings.phone) return bad(BIZ.settings.name ? 'b_phone' : 'b_name', 'קודם ממלאים ושומרים את הגדרות העסק');
-    REQ_FILL = $('fill').checked;
-    const req = { plan: REQ_PLAN, fill: REQ_FILL, at: new Date().toISOString() };
+    const req = { plan: REQ_PLAN, fill: REQ_FILL || null, at: new Date().toISOString() }, F = FILLS[REQ_FILL];
     const text = `שלום, אשמח לפרסם את הדף שלי.\nעסק: ${BIZ.settings.name}\nמייל: ${EMAIL}\nחבילה: ${REQ_PLAN === 1 ? 'דף אחד' : REQ_PLAN + ' דפים'} · ${PLANS[REQ_PLAN]} ₪ לשנה`
-      + (REQ_FILL ? '\nבנוסף: מילוי מלא של הדף על ידכם' : '') + (PAGES.length ? '\nהדף: ' + PAGES.map(p => p.slug).join(', ') : '');
+      + (F ? `\nבנוסף: ${fillLabel(REQ_FILL)}\nסה"כ: ${PLANS[REQ_PLAN] + F.price} ₪\nאת החומרים (${FILL_NEEDS}) אשלח כאן` : '') + (PAGES.length ? '\nהדף: ' + PAGES.map(p => p.slug).join(', ') : '');
     window.open(`https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + err.message); }
   }
@@ -119,7 +141,7 @@ document.addEventListener('click', async e => {
     if (!$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
     if (!ph) return bad('b_phone', 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
     if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05');
-    const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo').value.trim(), accent: $('b_accent').value,
+    const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo') ? $('b_logo').value.trim() : BIZ.settings.logo || '', accent: $('b_accent').value,
       phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
     try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
   }

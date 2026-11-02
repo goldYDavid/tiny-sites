@@ -93,6 +93,13 @@ const DB = {
     if (!sb) return LS.set('leads', LS.get('leads', []).filter(l => l.id !== id));
     const { error } = await sb.from('leads').delete().eq('id', id); if (error) throw error;
   },
+  // לוגו של העסק: בתיקייה של בעל העסק (עוד לפני שיש לו דף)
+  async uploadLogo(blob) {
+    if (!sb) return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+    const path = `${UID}/logo-${Date.now()}.webp`;
+    const { error } = await sb.storage.from('tiny-sites-images').upload(path, blob, { contentType: 'image/webp' });
+    if (error) throw error; return sb.storage.from('tiny-sites-images').getPublicUrl(path).data.publicUrl;
+  },
   async upload(slug, blob) {
     if (!sb) return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
     const path = `${slug}/${Date.now()}.webp`;
@@ -101,11 +108,22 @@ const DB = {
   },
 };
 // הקטנת תמונה בדפדפן לפני העלאה — דף מהיר גם עם תמונות מהטלפון
+// SVG (לוגו) מצויר לתמונה רגילה — לא שומרים קבצי SVG בשרת
 async function shrink(file, max = 1200) {
-  const img = await createImageBitmap(file), r = Math.min(1, max / Math.max(img.width, img.height));
-  const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.width * r), height: Math.round(img.height * r) });
+  const svg = /svg/.test(file.type); let img;
+  if (svg) { img = new Image(); img.src = URL.createObjectURL(file); await img.decode(); } else img = await createImageBitmap(file);
+  const w = img.naturalWidth || img.width || max, h = img.naturalHeight || img.height || max, r = svg ? max / Math.max(w, h) : Math.min(1, max / Math.max(w, h));
+  const c = Object.assign(document.createElement('canvas'), { width: Math.round(w * r), height: Math.round(h * r) });
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return new Promise(res => c.toBlob(res, 'image/webp', 0.8));
 }
+// חבילות מילוי (חד־פעמי): אנחנו מנסחים ומסדרים. החומרים עצמם — רק מבעל העסק
+const FILLS = {
+  basic: { label: 'בסיס', price: 99, does: 'ניסוח כותרת ותיאור, בחירת עיצוב וצבעים, סידור פרטי הקשר והשעות' },
+  plus: { label: 'מורחב', price: 199, does: 'כל מה שבבסיס + סידור מחירון או שירותים (עד 15), גלריה (עד 8 תמונות) וכתיבת 3 שאלות נפוצות' },
+  full: { label: 'מלא', price: 349, does: 'כל מה שבמורחב + עד 40 פריטים, גלריה עד 20 תמונות, עד 8 שאלות נפוצות, ניסוח שיווקי מלא ו־2 סבבי תיקונים' },
+};
+const FILL_NEEDS = 'לוגו, תמונות, מחירים, שעות פתיחה, כתובת והמלצות אמיתיות של לקוחות';
+const fillLabel = f => f === true ? 'מילוי מלא' : FILLS[f] ? `מילוי ${FILLS[f].label} (${FILLS[f].price} ₪)` : '';
 // קישור בתוך הניהול שומר על מצב הבדיקה המקומי
 const href = (page, q = '') => page + '?' + q + (window.SUPABASE_URL ? '' : (q ? '&' : '') + 'local');

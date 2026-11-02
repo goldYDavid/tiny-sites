@@ -52,7 +52,7 @@ window.renderSite = (site, ed = false, cart = {}) => {
     : s.hidden ? '' : `<section><h2>${esc(s.title)}</h2>${RENDER[s.kind](s, si, ed, cart)}</section>`;
   return `<header>
     ${ed ? IMG(ed, 'image', site.image, 'hero-img', 'תמונה ראשית (לא חובה)') : ''}${!ed && site.image ? `<img class="hero-img" src="${esc(site.image)}" alt="">` : ''}
-    ${ed || !site.image ? `<div class="logo" aria-hidden="true">${esc(site.logo)}</div>` : ''}
+    ${ed || !site.image ? (site.logo_img ? `<img class="logo logo-img" src="${esc(site.logo_img)}" alt="${esc(site.name)}">` : `<div class="logo" aria-hidden="true">${esc(site.logo)}</div>`) : ''}
     <h1>${esc(site.name)}</h1>${ed ? '<div class="ed-note">שם העסק, הלוגו, הטלפון והצבע משתנים בהגדרות העסק</div>' : ''}
     <p class="sub">${T(ed, 'tagline', site.tagline, 'משפט קצר מתחת לשם')}</p>
     ${site.badge || ed ? `<span class="badge">${T(ed, 'badge', site.badge, 'תגית בולטת (לא חובה)')}</span>` : ''}

@@ -17,7 +17,7 @@ for (const r of rows) {
   await phone.goto(`http://localhost:8765/?s=${r.slug}`, { waitUntil: 'networkidle' });
   const shot = (await phone.screenshot({ type: 'jpeg', quality: 85 })).toString('base64');
   await card.setContent(`<html dir="rtl"><body style="margin:0;width:1200px;height:630px;display:flex;align-items:center;gap:56px;padding:0 70px;box-sizing:border-box;background:linear-gradient(135deg,#fff,color-mix(in srgb,${accent} 22%,#fff));font-family:'Segoe UI',Arial,sans-serif;color:#222">
-    <div style="flex:1"><div style="font-size:96px;line-height:1">${esc(s.logo)}</div><div style="font-size:64px;font-weight:800;line-height:1.15;margin-top:18px">${esc(s.name)}</div>
+    <div style="flex:1">${s.logo_img ? `<img src="${esc(s.logo_img)}" style="width:120px;height:120px;object-fit:contain;background:#fff;border-radius:24px;padding:10px">` : `<div style="font-size:96px;line-height:1">${esc(s.logo)}</div>`}<div style="font-size:64px;font-weight:800;line-height:1.15;margin-top:18px">${esc(s.name)}</div>
     <div style="font-size:34px;margin:18px 0 32px;line-height:1.4;color:#444">${esc(s.tagline)}</div>
     <div style="display:inline-block;background:${accent};color:#fff;font-size:34px;font-weight:800;padding:12px 30px;border-radius:40px">${esc(s.cta || 'הזמנה בוואטסאפ')}</div></div>
     <img src="data:image/jpeg;base64,${shot}" style="width:290px;height:565px;object-fit:cover;object-position:top;border:10px solid #222;border-radius:38px;box-shadow:0 20px 50px #0004"></body></html>`);
