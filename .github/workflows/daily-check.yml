@@ -1,0 +1,16 @@
+# כל בוקר: האתר והשרת עונים + תזכורות חידוש (30/7/0 ימים, והשהיה). כשיש משהו — הריצה נכשלת ו-GitHub שולח מייל. לא בשבת ובחג.
+name: daily-check
+on:
+  schedule: [{ cron: '0 6 * * *' }]
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - id: s
+        run: node .github/shabbat.mjs
+      - if: steps.s.outputs.shabbat != 'true'
+        run: node .github/daily-check.mjs
