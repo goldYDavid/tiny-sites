@@ -33,7 +33,7 @@ button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:
 <script src="presets.js"></script>
 <script src="admin-lib.js"></script>
 <script>
-// ניהול ראשי (רק למנהלים — נבדק בשרת): פתיחת לקוח אחרי תשלום, חבילה, חידוש, ועריכת הדפים של הלקוחות
+// ניהול ראשי (רק למנהלים — נבדק בשרת): בעלי עסקים נרשמים ובונים לבד; כאן מסמנים "שולם" (← הדף מתפרסם), חבילה, חידוש, ועריכה במקומם
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const PLANS = { 1: 200, 3: 500, 5: 800 };
 const pageUrl = slug => new URL('p/' + slug + '.html', location.href).href;
@@ -45,36 +45,28 @@ const typeOptions = () => Object.entries(PRESETS).map(([k, p]) => `<option value
 const pageContent = type => { const { label, name, phone, address, accent, logo, ...c } = structuredClone(PRESETS[type]); return { content: { ...c, type, template: 'classic' }, logo, accent }; };
 const checkSlug = (id, v) => !v ? bad(id, 'צריך למלא כתובת לדף, למשל moshe-bakery') : /[^a-z0-9-]/.test(v) ? bad(id, 'בכתובת מותר רק אותיות באנגלית, מספרים ומקף')
   : v.length < 3 || v.length > 40 ? bad(id, 'הכתובת צריכה להיות באורך 3 עד 40 תווים') : true;
-let LIST = [], DONE = null, Q = '';
+let LIST = [], Q = '';
 
 function draw() {
-  const soon = LIST.filter(c => c.renews_at && days(c.renews_at) <= 30), leads = LIST.reduce((n, c) => n + c.pages.reduce((m, p) => m + p.new_leads, 0), 0);
+  const soon = LIST.filter(c => c.renews_at && days(c.renews_at) <= 30 && days(c.renews_at) >= -14), leads = LIST.reduce((n, c) => n + c.pages.reduce((m, p) => m + p.new_leads, 0), 0);
+  const paid = LIST.filter(c => c.renews_at), waiting = LIST.filter(c => !c.renews_at);
   const list = LIST.filter(c => !Q || JSON.stringify([c.email, c.settings, c.pages]).toLowerCase().includes(Q.toLowerCase()));
   $('app').innerHTML = `<h1>ניהול ראשי</h1>
-  <div class="card stats"><div><b>${LIST.length}</b>לקוחות</div><div><b>${LIST.reduce((n, c) => n + (PLANS[c.page_limit] || 0), 0).toLocaleString('he-IL')} ₪</b>הכנסה שנתית</div>
+  <div class="card stats"><div><b>${paid.length}</b>לקוחות משלמים</div><div><b class="${waiting.some(c => c.request?.at) ? 'warn' : ''}">${waiting.length}</b>נרשמו, לא שילמו</div><div><b>${paid.reduce((n, c) => n + (PLANS[c.page_limit] || 0), 0).toLocaleString('he-IL')} ₪</b>הכנסה שנתית</div>
     <div><b class="${soon.length ? 'warn' : ''}">${soon.length}</b>חידושים ב־30 יום</div><div><b>${leads}</b>פניות חדשות</div></div>
-  ${DONE ? `<div class="card ok"><h2>✓ הלקוח נפתח: ${esc(DONE.name)}</h2><p>הדף: <a href="${pageUrl(DONE.slug)}" target="_blank" dir="ltr">${pageUrl(DONE.slug)}</a></p>
-    <p class="muted">תמונת התצוגה בוואטסאפ תתעדכן תוך שעה. אפשר כבר לשלוח את הקישור.</p>
-    <div class="tools"><a class="btn primary" href="${editUrl(DONE.slug)}">עריכת הדף</a>
-    <a class="btn wa" target="_blank" href="${wa(DONE.phone, `שלום ${DONE.name}, הדף שלך מוכן 🎉\n${pageUrl(DONE.slug)}\n\nכדאי לשתף אותו בקבוצות ובסטטוס. לכל שינוי — שלחו לי הודעה כאן.`)}">שליחת הקישור ללקוח בוואטסאפ</a>
-    <button data-act="closeDone">סגירה</button></div></div>` : ''}
-  <div class="card"><h2>לקוח חדש (אחרי תשלום)</h2>
-    <div class="grid2"><div><label>שם העסק</label><input id="n_name"></div><div><label>וואטסאפ של העסק</label><input id="n_phone" type="tel" inputmode="tel" placeholder="05..."></div>
-    <div><label>מייל (לכניסה לעריכה בעתיד)</label><input id="n_email" type="email" dir="ltr"></div><div><label>תחום</label><select id="n_type">${typeOptions()}</select></div>
-    <div><label>חבילה</label><select id="n_limit">${Object.entries(PLANS).map(([k, v]) => `<option value="${k}">${k === '1' ? 'דף אחד' : k + ' דפים'} · ${v} ₪ לשנה</option>`).join('')}</select></div>
-    <div><label>כתובת לדף (באנגלית)</label><input id="n_slug" dir="ltr" placeholder="moshe-bakery"></div></div>
-    <div class="tools"><button class="primary" data-act="create">פתיחת הלקוח והדף</button></div></div>
   <div class="card"><input id="q" placeholder="חיפוש לקוח (שם, מייל, טלפון, כתובת דף)" value="${esc(Q)}"></div>
-  ${list.map(c => { const s = c.settings || {}, d = c.renews_at ? days(c.renews_at) : null, can = c.pages.length < c.page_limit;
-    const st = d === null ? '' : d < -14 ? `<span class="bad">מושהה (פג לפני ${-d} ימים)</span>` : d < 0 ? `<span class="bad">פג לפני ${-d} ימים — יושהה בעוד ${14 + d}</span>` : d <= 30 ? `<span class="warn">חידוש בעוד ${d} ימים</span>` : `<span class="muted">חידוש ${fmt(c.renews_at)}</span>`;
+  ${list.sort((a, b) => (!b.renews_at && b.request?.at ? 1 : 0) - (!a.renews_at && a.request?.at ? 1 : 0)).map(c => { const s = c.settings || {}, d = c.renews_at ? days(c.renews_at) : null, can = c.pages.length < c.page_limit;
+    const rq = c.request || {}, st = d === null ? `<span class="${rq.at ? 'warn' : 'muted'}">${rq.at ? `ביקש לפרסם · ${rq.plan || 1} ${rq.plan > 1 ? 'דפים' : 'דף'}${rq.fill ? ' + מילוי מלא' : ''}` : 'נרשם, עוד בונה'}</span>` : d < -14 ? `<span class="bad">מושהה (פג לפני ${-d} ימים)</span>` : d < 0 ? `<span class="bad">פג לפני ${-d} ימים — יושהה בעוד ${14 + d}</span>` : d <= 30 ? `<span class="warn">חידוש בעוד ${d} ימים</span>` : `<span class="muted">חידוש ${fmt(c.renews_at)}</span>`;
     return `<div class="card"><div class="row" style="justify-content:space-between"><h2>${esc(s.logo || '')} ${esc(s.name || '(בלי שם)')}</h2>${st}</div>
     <div class="muted" dir="ltr" style="text-align:right">${esc(c.email)}${s.phone ? ' · 0' + esc(String(s.phone).replace(/^972/, '')) : ''}</div>
     ${c.pages.map(p => `<div class="page"><span dir="ltr">${esc(p.slug)}</span>${p.new_leads ? `<span class="warn">${p.new_leads} פניות חדשות</span>` : ''}
       <span class="tools" style="margin:0"><a class="btn" target="_blank" href="${pageUrl(p.slug)}">צפייה</a><a class="btn primary" href="${editUrl(p.slug)}">עריכה</a></span></div>`).join('')}
     ${can ? `<div class="row" style="margin-top:8px"><select id="t_${c.owner}">${typeOptions()}</select><input id="s_${c.owner}" dir="ltr" placeholder="כתובת לדף נוסף"><button data-act="addPage" data-o="${c.owner}">+ דף</button></div>` : ''}
-    <div class="tools"><label style="margin:0">חבילה</label><select data-limit="${c.owner}" style="width:auto">${Object.keys(PLANS).map(k => `<option ${+k === c.page_limit ? 'selected' : ''} value="${k}">${k} · ${PLANS[k]} ₪</option>`).join('')}</select>
+    ${d === null ? `<div class="tools"><span class="muted">שולם על:</span>${Object.keys(PLANS).map(k => `<button class="${+k === (rq.plan || 1) ? 'primary' : ''}" data-act="paid" data-o="${c.owner}" data-n="${k}">${k === '1' ? 'דף אחד' : k + ' דפים'} · ${PLANS[k]} ₪</button>`).join('')}
+      ${s.phone ? `<a class="btn wa" target="_blank" href="${wa(s.phone, `שלום ${s.name || ''}, ראיתי שבנית דף אצלנו 👋 לפרסום לשנה: ${PLANS[rq.plan || 1]} ₪. איך נוח לך לשלם?`)}">וואטסאפ לבעל העסק</a>` : ''}`
+    : `<div class="tools"><label style="margin:0">חבילה</label><select data-limit="${c.owner}" style="width:auto">${Object.keys(PLANS).map(k => `<option ${+k === c.page_limit ? 'selected' : ''} value="${k}">${k} · ${PLANS[k]} ₪</option>`).join('')}</select>
       <button data-act="renew" data-o="${c.owner}">שולם — חידוש לשנה</button>
-      ${s.phone ? `<a class="btn wa" target="_blank" href="${wa(s.phone, `שלום ${s.name || ''}, המנוי לדף שלך מתחדש ב־${c.renews_at ? fmt(c.renews_at) : ''}. החידוש לשנה: ${PLANS[c.page_limit] || ''} ₪. איך נוח לך לשלם?`)}">תזכורת חידוש</a>` : ''}</div></div>`; }).join('') || '<p class="muted">אין לקוחות</p>'}`;
+      ${s.phone ? `<a class="btn wa" target="_blank" href="${wa(s.phone, `שלום ${s.name || ''}, המנוי לדף שלך מתחדש ב־${fmt(c.renews_at)}. החידוש לשנה: ${PLANS[c.page_limit] || ''} ₪. איך נוח לך לשלם?`)}">תזכורת חידוש</a>` : ''}`}</div></div>`; }).join('') || '<p class="muted">אין לקוחות</p>'}`;
 }
 async function load() { const { data, error } = await sb.rpc('admin_customers'); if (error) throw error; LIST = data; draw(); }
 const err = e => /slug taken|duplicate|unique/i.test(e.message) ? 'הכתובת הזו כבר תפוסה' : /customer exists/.test(e.message) ? 'למייל הזה כבר יש עסק — מוסיפים לו דף מהרשימה' : /limit/.test(e.message) ? 'הלקוח הגיע למכסת הדפים בחבילה' : 'שגיאה: ' + e.message;
@@ -84,18 +76,11 @@ document.addEventListener('change', async e => { const o = e.target.dataset.limi
   try { await sb.rpc('admin_set', { p_owner: o, p_limit: +e.target.value, p_renews: null }); msg('החבילה עודכנה ✓'); await load(); } catch (x) { msg('❌ ' + err(x)); } });
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return; const a = b.dataset.act;
-  if (a === 'closeDone') { DONE = null; return draw(); }
-  if (a === 'create') {
-    const name = $('n_name').value.trim(), ph = $('n_phone').value.replace(/\D/g, ''), email = $('n_email').value.trim(), slug = $('n_slug').value.trim().toLowerCase(), type = $('n_type').value;
-    if (!name) return bad('n_name', 'צריך למלא את שם העסק');
-    if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('n_phone', ph ? 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05' : 'צריך למלא את הוואטסאפ של העסק');
-    if (!isMail(email)) return bad('n_email', email ? 'המייל לא תקין' : 'צריך למלא מייל');
-    if (checkSlug('n_slug', slug) !== true) return;
-    const { content, logo, accent } = pageContent(type), phone = ph.replace(/^0/, '972');
-    b.disabled = true;
-    try { await sb.rpc('admin_create', { p_email: email, p_settings: { name, phone, logo, accent }, p_limit: +$('n_limit').value, p_slug: slug, p_content: content }).then(r => { if (r.error) throw r.error; });
-      DONE = { name, phone, slug }; await load(); scrollTo(0, 0); }
-    catch (x) { b.disabled = false; /slug|unique|duplicate/i.test(x.message) ? bad('n_slug', err(x)) : /customer exists/.test(x.message) ? bad('n_email', err(x)) : msg('❌ ' + err(x)); }
+  if (a === 'paid') {
+    const c = LIST.find(x => x.owner === b.dataset.o), n = +b.dataset.n, next = new Date(); next.setFullYear(next.getFullYear() + 1);
+    if (!confirm(`לסמן ש${(c.settings || {}).name || c.email} שילם על ${n === 1 ? 'דף אחד' : n + ' דפים'} (${PLANS[n]} ₪)?
+הדף יתפרסם מיד, וחידוש ב־${fmt(next)}.`)) return;
+    try { const r = await sb.rpc('admin_set', { p_owner: c.owner, p_limit: n, p_renews: next.toISOString().slice(0, 10) }); if (r.error) throw r.error; msg('✓ שולם — הדף מפורסם'); await load(); } catch (x) { msg('❌ ' + err(x)); }
   }
   if (a === 'addPage') {
     const o = b.dataset.o, slug = $('s_' + o).value.trim().toLowerCase(); if (checkSlug('s_' + o, slug) !== true) return;

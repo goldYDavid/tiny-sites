@@ -10,9 +10,13 @@ if (new URLSearchParams(location.search).has('local')) window.SUPABASE_URL = '';
 const GRACE_DAYS = 14;
 window.loadSite = async slug => {
   if (!window.SUPABASE_URL) { const l = localStorage.getItem('draft:' + slug); return l ? { ...JSON.parse(localStorage.getItem('biz') || '{}'), ...JSON.parse(l) } : null; }
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/sites?slug=eq.${encodeURIComponent(slug)}&select=content,businesses(settings,renews_at)`, { headers: { apikey: SUPABASE_KEY, 'Accept-Profile': 'tiny' } });
+  // בעל העסק מחובר ← רואה גם את הטיוטה שלו (השרת מחזיר לגולשים רק דפים מפורסמים)
+  let tok = null; try { tok = JSON.parse(localStorage.getItem('tiny-auth')).access_token; } catch {}
+  const get = t => fetch(`${SUPABASE_URL}/rest/v1/sites?slug=eq.${encodeURIComponent(slug)}&select=content,businesses(settings,renews_at)`, { headers: { apikey: SUPABASE_KEY, 'Accept-Profile': 'tiny', ...(t && { Authorization: 'Bearer ' + t }) } });
+  let r = await get(tok); if (r.status === 401 && tok) r = await get(null);
   const [row] = await r.json(); if (!row || !row.content.sections) return null;
   const b = row.businesses || {};
+  if (!b.renews_at) return { ...b.settings, ...row.content, draft: true };
   if (b.renews_at && new Date(b.renews_at).getTime() + GRACE_DAYS * 864e5 < Date.now()) return { paused: true, name: (b.settings || {}).name };
   return { ...b.settings, ...row.content };
 };

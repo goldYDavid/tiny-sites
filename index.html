@@ -23,7 +23,7 @@ function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;
   document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
   const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
-  app.innerHTML = renderSite(site, false, cart);
+  app.innerHTML = (site.draft ? '<div class="draft">טיוטה — הדף עוד לא מפורסם, ורק אתם רואים אותו</div>' : '') + renderSite(site, false, cart);
   update();
 }
 function update() {
@@ -52,11 +52,12 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
   if (demo) return render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') });
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
-  const fresh = await window.loadSite(slug).catch(() => null);
+  const fresh = await window.loadSite(slug).catch(() => 'offline');  // בלי רשת ← נשארים עם העותק השמור
   if (fresh && fresh.paused) { try { localStorage.removeItem(key); } catch {} document.title = fresh.name || 'הדף בהשהיה';
     document.querySelector('.bar').remove(); return document.getElementById('app').innerHTML = '<p class="paused">הדף בהשהיה זמנית</p>'; }
+  if (fresh === 'offline') { if (!SITE) document.getElementById('app').innerHTML = '<p class="paused">אין חיבור לאינטרנט — נסו שוב</p>'; return; }
   if (fresh) { try { localStorage.setItem(key, JSON.stringify(fresh)); } catch {} if (JSON.stringify(fresh) !== JSON.stringify(SITE)) render(fresh); }
-  else if (!SITE) document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center">הדף לא נמצא</p>';
+  else { try { localStorage.removeItem(key); } catch {} document.querySelector('.bar').remove(); document.getElementById('app').innerHTML = '<p class="paused">הדף לא זמין כרגע</p>'; }  // לא קיים / לא מפורסם
 })();
 </script>
 </body>

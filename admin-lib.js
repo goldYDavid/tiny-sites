@@ -10,7 +10,7 @@ const msg = t => { let m = $('toast');
 const bad = (id, t) => { const el = $(id); if (el) { el.style.borderColor = '#b42318'; el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.addEventListener('input', () => el.style.borderColor = '', { once: true }); } msg('⚠️ ' + t); return false; };
 const isMail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-let sb = null, UID = null;
+let sb = null, UID = null, EMAIL = '';
 
 // מחזיר true כשמחוברים; אחרת מציג מסך כניסה ב-#app ומחזיר false
 async function connect() {
@@ -19,16 +19,16 @@ async function connect() {
   // storageKey נפרד: באותו דומיין רצה גם אפליקציית הסנדוויצים (אותו שרת) — בלי זה החיבור שלה נכנס גם לכאן
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' } });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) { UID = session.user.id; return true; }
-  $('app').innerHTML = `<h1>כניסה לניהול</h1><div class="card"><label>המייל שלך</label><input id="em" type="email" inputmode="email">
+  if (session) { UID = session.user.id; EMAIL = session.user.email; return true; }
+  $('app').innerHTML = `<h1>כניסה או הרשמה</h1><div class="card"><p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p><label>המייל שלך</label><input id="em" type="email" inputmode="email">
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
   // קוד מלא (8 ספרות — לפי ההגדרה ב-Supabase) ← כניסה אוטומטית
   $('code').addEventListener('input', () => { if (/^\d{8}$/.test($('code').value.trim())) $('ok').click(); });
   $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
-    const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.href } });
-    error ? msg('❌ ' + (/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup|not found/i.test(error.message) ? 'המייל הזה לא רשום כבעל אתר' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
+    const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: true, emailRedirectTo: location.href } });
+    error ? msg('❌ ' + (/rate|seconds/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
           : ($('step2').hidden = false, $('code').focus(), msg('✓ נשלח קוד למייל — בדקו גם בספאם')); };
   // כניסה עם הקוד מהמייל (נשאר גם קישור מודבק, למי שהדביק קישור)
   $('ok').onclick = async () => { const v = $('code').value.trim(); if (!v) return bad('code', 'צריך להקליד את הקוד מהמייל');
@@ -39,11 +39,17 @@ async function connect() {
 }
 
 const DB = {
-  // הגדרות העסק + מכסת הדפים. העסק נפתח רק על ידינו (אחרי תשלום) — אין עסק ← null
+  // הגדרות העסק + חבילה. נרשם חדש ← נפתח לו עסק כטיוטה (בלי תאריך חידוש — לא מפורסם עד שהמנהל מסמן תשלום)
   async biz() {
-    if (!sb) return { settings: LS.get('biz', {}), page_limit: LS.get('limit', 1), renews_at: LS.get('renews', null) };
-    const { data, error } = await sb.from('businesses').select('settings,page_limit,renews_at').eq('owner', UID).maybeSingle(); if (error) throw error;
-    return data;
+    if (!sb) return { settings: LS.get('biz', {}), page_limit: LS.get('limit', 1), renews_at: LS.get('renews', null), request: LS.get('request', {}) };
+    const { data, error } = await sb.from('businesses').select('settings,page_limit,renews_at,request').eq('owner', UID).maybeSingle(); if (error) throw error;
+    if (data) return data;
+    const ins = await sb.from('businesses').insert({ owner: UID, settings: {} }); if (ins.error) throw ins.error;
+    return { settings: {}, page_limit: 1, renews_at: null, request: {} };
+  },
+  async saveRequest(request) {
+    if (!sb) return LS.set('request', request);
+    const { error } = await sb.from('businesses').update({ request }).eq('owner', UID); if (error) throw error;
   },
   async saveBiz(settings) {
     if (!sb) return LS.set('biz', settings);
