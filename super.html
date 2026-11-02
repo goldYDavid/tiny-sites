@@ -23,6 +23,7 @@ button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:
 .muted{color:var(--muted)}.bad{color:var(--bad);font-weight:700}.warn{color:var(--warn);font-weight:700}
 .page{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
 .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.row select,.row input{width:auto;flex:1;min-width:120px}
+@media (max-width:640px){.row select,.row input{flex-basis:100%}}  /* בטלפון: כל שדה בשורה משלו (אחרי .row כדי לגבור על flex:1) */
 .ok{background:color-mix(in srgb,#1fa855 12%,var(--card));border-color:#1fa855}
 .stats{display:flex;gap:8px;flex-wrap:wrap}.stats div{flex:1;min-width:110px;text-align:center}.stats b{display:block;font-size:22px}
 </style>
