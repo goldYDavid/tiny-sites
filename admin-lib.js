@@ -31,7 +31,9 @@ async function connect(admin = false) {
     const { error } = await sb.auth.signInWithOtp({ email: $('em').value.trim(), options: { shouldCreateUser: !admin, emailRedirectTo: location.href } });
     const sec = (error?.message.match(/after (\d+) seconds/) || [])[1];  // בין שני קודים לאותו מייל צריך לחכות דקה
     if (sec) $('step2').hidden = false;  // הקוד הקודם עדיין בדרך — משאירים את שדה הקוד
-    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'נשלחו יותר מדי מיילים — נסו שוב בעוד כמה דקות' : /signup/i.test(error.message) ? 'המייל הזה לא מוגדר כמנהל' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
+    // גיבוי: אם המייל לא נשלח או לא מגיע, בעל העסק לא נתקע — פונה אלינו בוואטסאפ
+    if (!admin && !sec && window.SALES_PHONE && !$('mailhelp')) $('send').insertAdjacentHTML('afterend', `<p id="mailhelp" class="muted">${error ? 'משהו השתבש בשליחת הקוד.' : 'הקוד לא הגיע תוך דקה?'} <a target="_blank" href="https://wa.me/${SALES_PHONE}?text=${encodeURIComponent('שלום, אני מנסה להירשם לבניית דף עם המייל ' + $('em').value.trim() + ' והקוד לא מגיע')}">כתבו לנו בוואטסאפ</a> ונעזור לכם מיד.</p>`);
+    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'יש עומס בשליחת קודים — נסו שוב בעוד כמה דקות, או כתבו לנו בוואטסאפ' : /signup/i.test(error.message) ? 'המייל הזה לא מוגדר כמנהל' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
           : ($('step2').hidden = false, $('code').focus(), msg('✓ נשלח קוד למייל — בדקו גם בספאם')); };
   // כניסה עם הקוד מהמייל (נשאר גם קישור מודבק, למי שהדביק קישור)
   $('ok').onclick = async () => { const v = $('code').value.trim(); if (!v) return bad('code', 'צריך להקליד את הקוד מהמייל');
