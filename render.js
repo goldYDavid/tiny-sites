@@ -10,6 +10,9 @@ const IMG = (ed, p, v, cls, ph) => ed
 const TOOLS = (ed, si, ii) => ed ? `<div class="ed-tools">${[['up', '↑', 'למעלה'], ['down', '↓', 'למטה'], ['del', '✕', 'מחיקה']].map(([a, t, l]) => `<button data-act="${a}" data-s="${si}" data-i="${ii}" aria-label="${l}">${t}</button>`).join('')}</div>` : '';
 // סגנונות תצוגה למחירון מוצרים (נבחר לכל מקטע בעורך)
 window.VIEWS = { list: 'רשימה עם תמונה קטנה', grid: 'רשת — 2 בשורה', big: 'תמונה גדולה', text: 'בלי תמונות' };
+// בחירת סגנון בעורך: כל אפשרות עם שרטוט קטן של איך היא נראית
+const SKETCH = { list: '<i class="r"><b></b><u></u></i>'.repeat(3), grid: '<i class="g"><b></b></i>'.repeat(4), big: '<i class="w"><b></b><u></u></i>', text: '<i class="t"><u></u><s></s></i>'.repeat(3) };
+const VIEWPICK = (s, si) => `<div class="viewpick" role="radiogroup" aria-label="תצוגת המוצרים">${Object.entries(VIEWS).map(([k, l]) => `<button data-view="${si}" data-v="${k}" role="radio" aria-checked="${(s.view || 'list') === k}"><span class="sk sk-${k}" aria-hidden="true">${SKETCH[k]}</span>${l}</button>`).join('')}</div>`;
 const RENDER = {
   products: (s, si, ed, cart) => `<div class="items v-${VIEWS[s.view] ? s.view : 'list'}">` + s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<div class="card item">${IMG(ed, p + 'image', it.image, '', 'תמונה')}
     <div class="t"><b>${T(ed, p + 'name', it.name, 'שם המוצר')}</b>${it.note || ed ? `<small>${T(ed, p + 'note', it.note, 'פירוט (משקל/כמות)')}</small>` : ''}</div>
@@ -49,9 +52,8 @@ window.renderSite = (site, ed = false, cart = {}) => {
   const sec = (s, si) => ed
     ? `<section class="${s.hidden ? 'ed-hidden' : ''}"><div class="ed-sec"><h2>${T(ed, `sections.${si}.title`, s.title, 'כותרת')}</h2><div class="ed-tools">
         <button data-act="sup" data-s="${si}" aria-label="הזזת המקטע למעלה">↑</button><button data-act="sdown" data-s="${si}" aria-label="הזזת המקטע למטה">↓</button>
-        ${s.kind === 'products' ? `<select data-view="${si}" aria-label="תצוגת המוצרים">${Object.entries(VIEWS).map(([k, l]) => `<option value="${k}" ${(s.view || 'list') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
         <button data-act="shide" data-s="${si}">${s.hidden ? 'הצגה' : 'הסתרה'}</button><button data-act="sdel" data-s="${si}">מחיקה</button></div></div>
-        ${RENDER[s.kind](s, si, ed, cart)}${s.kind === 'text' || s.kind === 'lead' ? '' : `<button class="ed-add" data-act="add" data-s="${si}">+ הוספה</button>`}</section>`
+        ${s.kind === 'products' ? VIEWPICK(s, si) : ''}${RENDER[s.kind](s, si, ed, cart)}${s.kind === 'text' || s.kind === 'lead' ? '' : `<button class="ed-add" data-act="add" data-s="${si}">+ הוספה</button>`}</section>`
     : s.hidden ? '' : `<section><h2>${esc(s.title)}</h2>${RENDER[s.kind](s, si, ed, cart)}</section>`;
   return `<header>
     ${ed ? IMG(ed, 'image', site.image, 'hero-img', 'תמונה ראשית (לא חובה)') : ''}${!ed && site.image ? `<img class="hero-img" src="${esc(site.image)}" alt="">` : ''}
