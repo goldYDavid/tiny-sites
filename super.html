@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-themed>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
 <style>
 :root{--bg:#f5f3ef;--card:#fff;--ink:#222;--muted:#777;--line:#e2ddd5;--accent:#2563eb;--bad:#b42318;--warn:#b54708}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333}}
+:root[data-theme=dark]{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333;color-scheme:dark}  /* בהיר כברירת מחדל גם כשהטלפון במצב כהה; כהה רק בבחירה (כפתור 🌙) */
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Segoe UI",Arial,sans-serif}
 .wrap{max-width:760px;margin:auto;padding:16px 16px 60px}
 h1{font-size:22px;margin:8px 0 16px}h2{font-size:18px;margin:0 0 6px}

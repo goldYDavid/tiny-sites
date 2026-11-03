@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-themed>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>ניהול העסק</title>
 <link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#2563eb">
 <style>
 :root{--bg:#f5f3ef;--card:#fff;--ink:#222;--muted:#777;--line:#e2ddd5;--accent:#2563eb}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333}}
+:root[data-theme=dark]{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333;color-scheme:dark}  /* בהיר כברירת מחדל גם כשהטלפון במצב כהה; כהה רק בבחירה (כפתור 🌙) */
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Segoe UI",Arial,sans-serif}
 .wrap{max-width:720px;margin:auto;padding:16px 16px 60px}
 h1{font-size:22px;margin:8px 0 16px}h2{font-size:18px;margin:0}
@@ -42,7 +43,25 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 <script>
 // ניהול: הגדרות כלליות של העסק + רשימת הדפים + יצירת דף חדש (עד מכסת החבילה)
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-let BIZ, PAGES, NEWLEADS = 0, TYPE = 'seasonal';
+let BIZ, PAGES, NEWLEADS = 0, TYPE = 'seasonal', PAY;
+
+// תשלום מהלקוחות: בעל העסק בוחר ביט / פייבוקס / קישור משלו / בלי. אחרי הזמנה הלקוח רואה כפתור תשלום עם הסכום
+const A = (u, t) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+const PAY_HELP = {
+  none: 'הלקוח שולח את ההזמנה בוואטסאפ, ואת התשלום אתם מסכמים איתו.',
+  bit: `הלקוח מעביר לכם בביט למספר הטלפון שלכם — הסכום והמספר מוצגים לו אחרי ההזמנה.<br>אפשר להוסיף גם קישור: באפליקציית ביט לוחצים "קבוצה" ← איסוף כסף ← "סכום פתוח", ומשתפים את הלינק. שימו לב שקבוצה נסגרת בסוף התקופה שבחרתם.<br>ביט פרטי: קבלת כסף חינם עד 25,000 ₪ בשנה, מעבר לזה עמלה של 0.8%. ${A('https://www.bitpay.co.il/he/private-faq', 'שאלות נפוצות של ביט')} · ${A('https://www.bitpay.co.il/he/bit-for-businesses', 'ביט לעסקים')}`,
+  paybox: `באפליקציית פייבוקס פותחים קבוצה ציבורית לתשלומים ומשתפים את הקישור שלה (לחיצה על "שיתוף" בקבוצה). מדביקים את הקישור כאן. הלקוח יקליד בפייבוקס את הסכום שמוצג לו. ${A('https://www.payboxapp.com/groups', 'קבוצות בפייבוקס')} · ${A('https://www.payboxapp.com/business', 'פייבוקס לעסקים')}`,
+  link: 'דף תשלום שקיבלתם מחברת סליקה (למשל Grow, חשבונית ירוקה, Cardcom או PayPal). מדביקים כאן את הקישור, והלקוח יקליד בו את הסכום שמוצג לו.',
+};
+function payCard() {
+  const p = BIZ.settings.pay || {}, m = PAY || p.method || 'none', phone = p.phone || BIZ.settings.phone;
+  return `<h2>תשלום מהלקוחות</h2><small class="muted">הכסף עובר ישר אליכם. אחרי הזמנה הלקוח רואה כפתור תשלום עם הסכום</small>
+    <div class="fills" style="margin-top:10px">${Object.entries(PAY_WAYS).map(([k, l]) => `<button data-pay="${k}" aria-pressed="${k === m}">${l}</button>`).join('')}</div>
+    <p class="muted" style="font-size:14px">${PAY_HELP[m]}</p>
+    ${m === 'bit' ? `<label>מספר הטלפון שמחובר לביט</label><input id="p_phone" inputmode="tel" value="${phone ? '0' + String(phone).replace(/^972/, '') : ''}">` : ''}
+    ${m !== 'none' ? `<label>${m === 'bit' ? 'קישור לתשלום בביט (לא חובה)' : m === 'paybox' ? 'הקישור לקבוצה בפייבוקס' : 'הקישור לדף התשלום'}</label><input id="p_link" dir="ltr" inputmode="url" placeholder="מדביקים כאן את הקישור" value="${esc(p.method === m ? p.link : '')}">` : ''}
+    <div class="tools"><button class="primary" id="savePay">שמירת אפשרות התשלום</button></div>`;
+}
 
 function draw() {
   const s = BIZ.settings, L = BIZ.page_limit, can = PAGES.length < L; PUB = published();
@@ -55,6 +74,7 @@ function draw() {
       <div><label>צבע ראשי</label><input id="b_accent" type="color" value="${esc(s.accent || '#c8741a')}"></div></div>
     <label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}">
     <div class="tools"><button class="primary" id="saveBiz">שמירת ההגדרות</button></div></div>
+  <div class="card" id="pay">${payCard()}</div>
   ${PUB ? `<div class="card" id="plan"><div class="head"><h2>החבילה שלי</h2><span class="muted">${L} ${L === 1 ? 'דף' : 'דפים'}${PLANS[L] ? ' · ' + PLANS[L] + ' ₪ לשנה' : ''}</span></div>
     <small class="muted">מתחדשת ב־${new Date(BIZ.renews_at).toLocaleDateString('he-IL')}</small>
     ${upgrades().length ? `<p class="muted">שדרוג באמצע השנה: משלמים רק את ההפרש, לפי החודשים שנשארו עד החידוש (${monthsLeft()} חודשים).</p><div class="tools">${upgrades().join('')}</div>` : ''}</div>` : publishCard()}
@@ -135,6 +155,18 @@ document.addEventListener('click', async e => {
       + (F ? `\nבנוסף: ${fillLabel(REQ_FILL)}\nסה"כ: ${PLANS[REQ_PLAN] + F.price} ₪\nאת החומרים (${FILL_NEEDS}) אשלח כאן` : '') + (PAGES.length ? '\nהדף: ' + PAGES.map(p => p.slug).join(', ') : '');
     window.open(`https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + err.message); }
+  }
+  if (b.dataset.pay) { PAY = b.dataset.pay; $('pay').innerHTML = payCard(); }  // רק הכרטיס — בלי לאבד שדות אחרים שעוד לא נשמרו
+  if (b.id === 'savePay') {
+    const method = PAY || (BIZ.settings.pay || {}).method || 'none', link = $('p_link') ? $('p_link').value.trim() : '', pay = { method };
+    if (link && !/^https:\/\/\S+\.\S+/.test(link)) return bad('p_link', 'הקישור לא תקין — צריך להתחיל ב־https://');
+    if ((method === 'paybox' || method === 'link') && !link) return bad('p_link', 'צריך להדביק את הקישור לתשלום');
+    if (link) pay.link = link;
+    if (method === 'bit') { const ph = $('p_phone').value.replace(/\D/g, '');
+      if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('p_phone', 'מספר הטלפון לא תקין — 10 ספרות שמתחילות ב־05');
+      pay.phone = ph.replace(/^0/, '972'); }
+    const s = { ...BIZ.settings, pay };
+    try { await DB.saveBiz(s); BIZ.settings = s; PAY = null; msg('✓ נשמר — ' + (method === 'none' ? 'הלקוחות ישלחו הזמנה בוואטסאפ בלבד' : 'אחרי הזמנה הלקוחות יראו כפתור תשלום' + (method === 'link' ? '' : ' ב' + PAY_WAYS[method]))); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
   }
   if (b.dataset.type) { TYPE = b.dataset.type; document.querySelectorAll('[data-type]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
   if (b.id === 'saveBiz') {

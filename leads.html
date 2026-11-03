@@ -1,29 +1,33 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-themed>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>פניות והזמנות</title>
 <link rel="preconnect" href="https://feshcsgtkfftmehbslyh.supabase.co" crossorigin>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#2563eb">
 <style>
 :root{--bg:#f5f3ef;--card:#fff;--ink:#222;--muted:#777;--line:#e2ddd5;--accent:#2563eb;--new:#c8741a}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333}}
+:root[data-theme=dark]{--bg:#141414;--card:#1f1f1f;--ink:#eee;--muted:#999;--line:#333;color-scheme:dark}  /* בהיר כברירת מחדל גם כשהטלפון במצב כהה; כהה רק בבחירה (כפתור 🌙) */
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Segoe UI",Arial,sans-serif}
 .wrap{max-width:720px;margin:auto;padding:16px 16px 60px}
 h1{font-size:22px;margin:8px 0 12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
-.card.new{border-inline-start:5px solid var(--new)}.card.done{opacity:.6}
+.card.new{border-inline-start:5px solid var(--new)}.card.progress{border-inline-start:5px solid var(--accent)}.card.hold{border-inline-start:5px solid #b58b00}.card.done,.card.cancel{opacity:.6}
 label{display:block;font-size:13px;color:var(--muted);margin:8px 0 2px}
 input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 .tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 11px;cursor:pointer;text-decoration:none;display:inline-block}
 .primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
-.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+select{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 8px}.tabs button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
-.tag{font-weight:700;color:var(--new)}.done .tag{color:var(--muted)}
+.tag{font-weight:700;color:var(--new)}.done .tag,.cancel .tag{color:var(--muted)}.progress .tag{color:var(--accent)}.hold .tag{color:#b58b00}
 .muted{color:var(--muted)}p{margin:6px 0}
 #msg{text-align:center;font-weight:700;min-height:22px}
+.check{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);margin-top:10px}.check input{width:22px;height:22px;flex:none}
+.steps{margin:6px 0;padding-inline-start:22px}.steps li{margin:3px 0}
 input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:right}  /* טקסט המילוי (placeholder) בעברית — מימין, גם בשדות שמקלידים בהם באנגלית */
 </style>
 </head>
@@ -36,29 +40,48 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const when = t => new Date(t).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
 const wa = p => String(p || '').replace(/\D/g, '').replace(/^0/, '972');
-let LEADS = [], SHOW = 'new';
+let LEADS = [], SHOW = 'new', BIZ = { settings: {} }, PUSH = false;
+// מצבי הזמנה/פנייה (done = הושלמה — הערך הישן "טופל" נשמר)
+const ST = { new: ['חדשה', 'חדשות'], progress: ['בטיפול', 'בטיפול'], hold: ['מושהית', 'מושהות'], done: ['הושלמה', 'הושלמו'], cancel: ['בוטלה', 'בוטלו'] };
 
 function draw() {
-  const n = LEADS.filter(l => l.status === 'new').length, list = LEADS.filter(l => SHOW === 'all' || l.status === SHOW);
-  $('app').innerHTML = `<a class="btn" href="${href('admin.html')}">→ לניהול</a><h1>פניות והזמנות</h1><div id="msg"></div>
-  <div class="tabs"><button data-show="new" aria-pressed="${SHOW === 'new'}">חדשות (${n})</button><button data-show="done" aria-pressed="${SHOW === 'done'}">טופלו</button><button data-show="all" aria-pressed="${SHOW === 'all'}">הכול</button></div>
+  // התראות על פנייה/הזמנה חדשה: בטלפון (במכשיר הזה) + במייל (ברירת מחדל: פעיל)
+function notifyCard() {
+  const st = pushState(), mail = BIZ.settings.notify_email !== false;
+  const push = PUSH ? '<p>✓ התראות פעילות בטלפון הזה</p><div class="tools"><button data-push="off">כיבוי ההתראות בטלפון</button></div>'
+    : st === 'ok' ? '<div class="tools"><button class="primary" data-push="on">🔔 הפעלת התראות בטלפון</button></div>'
+    : st === 'ios-home' ? '<p>באייפון ההתראות עובדות רק מהמסך הראשי:</p><ol class="steps"><li>לוחצים על כפתור השיתוף <b>⬆️</b> בתחתית ספארי</li><li>בוחרים "הוספה למסך הבית"</li><li>פותחים את "העסק שלי" מהמסך הראשי, ונכנסים שוב למסך הזה כדי להפעיל</li></ol>'
+    : st === 'denied' ? '<p class="muted">ההתראות חסומות בדפדפן. כדי לקבל אותן צריך לאשר התראות לאתר בהגדרות הדפדפן.</p>' : '<p class="muted">הדפדפן הזה לא תומך בהתראות.</p>';
+  return `<div class="card"><b>🔔 התראה על הזמנה או פנייה חדשה</b>${push}
+    <label class="check"><input type="checkbox" id="mailOn"${mail ? ' checked' : ''}> גם במייל${EMAIL ? ` ל־<span dir="ltr">${esc(EMAIL)}</span>` : ''}</label></div>`;
+}
+const cnt = k => LEADS.filter(l => l.status === k).length, list = LEADS.filter(l => SHOW === 'all' || l.status === SHOW);
+  $('app').innerHTML = `<a class="btn" href="${href('admin.html')}">→ לניהול</a><h1>פניות והזמנות</h1><div id="msg"></div>${notifyCard()}
+  <div class="tabs">${Object.entries(ST).map(([k, [, pl]]) => `<button data-show="${k}" aria-pressed="${SHOW === k}">${pl}${cnt(k) ? ` (${cnt(k)})` : ''}</button>`).join('')}<button data-show="all" aria-pressed="${SHOW === 'all'}">הכול</button></div>
   ${list.length ? list.map(l => { const d = l.data || {}; return `<div class="card ${l.status}">
-    <div class="meta"><span class="tag">${l.kind === 'order' ? '🛒 הזמנה' : '✉️ פנייה'}${l.status === 'done' ? ' · טופל' : ''}</span><span dir="ltr">${esc(l.slug)} · ${when(l.created_at)}</span></div>
+    <div class="meta"><span class="tag">${l.kind === 'order' ? '🛒 הזמנה' : '✉️ פנייה'}${l.status !== 'new' ? ' · ' + (ST[l.status] || ST.new)[0] : ''}</span><span dir="ltr">${esc(l.slug)} · ${when(l.created_at)}</span></div>
     ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p><p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>`
       : `<p><b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.message ? `<p>${esc(d.message)}</p>` : ''}${d.section ? `<p class="muted">מתוך: ${esc(d.section)}</p>` : ''}`}
     <div class="tools">${d.phone ? `<a class="btn primary" target="_blank" href="https://wa.me/${wa(d.phone)}">וואטסאפ ללקוח</a>` : ''}
-      <button data-st="${l.id}">${l.status === 'new' ? '✓ סימון כטופל' : 'החזרה לחדשות'}</button><button data-del="${l.id}">מחיקה</button></div></div>`; }).join('')
-    : `<p class="muted">${SHOW === 'new' ? 'אין פניות חדשות' : 'אין כאן כלום עדיין'}</p>`}`;
+      <select data-st="${l.id}" aria-label="מצב">${Object.entries(ST).map(([k, [one]]) => `<option value="${k}"${k === l.status ? ' selected' : ''}>מצב: ${one}</option>`).join('')}</select><button data-del="${l.id}">מחיקה</button></div></div>`; }).join('')
+    : `<p class="muted">${SHOW === 'all' ? 'אין כאן כלום עדיין' : 'אין פניות במצב "' + ST[SHOW][0] + '"'}</p>`}`;
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.show) { SHOW = b.dataset.show; return draw(); }
+  if (b.dataset.push) { try { b.dataset.push === 'on' ? await pushOn() : await pushOff(); PUSH = b.dataset.push === 'on'; draw(); msg(PUSH ? '✓ ההתראות הופעלו — תקבלו התראה על כל הזמנה חדשה' : 'ההתראות בטלפון כובו'); }
+    catch (err) { msg(err.message === 'denied' ? '⚠️ לא אושרו התראות — אפשר לאשר בהגדרות הדפדפן' : '❌ לא הצלחנו להפעיל התראות: ' + err.message); } return; }
   try {
-    if (b.dataset.st) { const l = LEADS.find(x => x.id == b.dataset.st); l.status = l.status === 'new' ? 'done' : 'new'; await DB.setLead(l.id, l.status); draw(); }
     if (b.dataset.del && confirm('למחוק את הפנייה?')) { await DB.delLead(+b.dataset.del); LEADS = LEADS.filter(x => x.id != b.dataset.del); draw(); msg('נמחק'); }
   } catch (err) { msg('❌ שגיאה: ' + err.message); }
 });
-(async () => { if (!(await connect())) return; LEADS = await DB.leads(); draw(); })();
+document.addEventListener('change', async e => { if (e.target.id === 'mailOn') { const s = { ...BIZ.settings, notify_email: e.target.checked };
+    try { await DB.saveBiz(s); BIZ.settings = s; msg(s.notify_email ? '✓ תקבלו מייל על כל הזמנה חדשה' : 'המיילים על הזמנות כובו'); } catch (err) { e.target.checked = !e.target.checked; msg('❌ ' + err.message); } return; }
+  const el = e.target.closest('select[data-st]'); if (!el) return;
+  const l = LEADS.find(x => x.id == el.dataset.st), was = l.status;
+  try { l.status = el.value; await DB.setLead(l.id, l.status); draw(); msg('✓ המצב עודכן: ' + ST[l.status][0]); } catch (err) { l.status = was; draw(); msg('❌ שגיאה: ' + err.message); }
+});
+(async () => { if (!(await connect())) return; [LEADS, BIZ, PUSH] = await Promise.all([DB.leads(), DB.biz(), pushIsOn().catch(() => false)]); draw(); })();
 </script>
 </body>
 </html>

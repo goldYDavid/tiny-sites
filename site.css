@@ -1,6 +1,7 @@
 /* עיצוב הדף — משותף לדף הציבורי ולעורך. תבניות: t-classic (ברירת מחדל), t-bold, t-minimal */
 :root{--bg:#fbf8f3;--card:#fff;--ink:#231c16;--muted:#76695c;--line:#ebe2d6;--accent:#c8741a;--wa:#1fa855}
-@media (prefers-color-scheme:dark){:root{--bg:#17130f;--card:#221c17;--ink:#f3ebe1;--muted:#b4a392;--line:#382e25}}
+@media (prefers-color-scheme:dark){:root:not([data-themed]){--bg:#17130f;--card:#221c17;--ink:#f3ebe1;--muted:#b4a392;--line:#382e25}}
+:root[data-theme=dark]{--bg:#17130f;--card:#221c17;--ink:#f3ebe1;--muted:#b4a392;--line:#382e25;color-scheme:dark}  /* העורך (data-themed): בהיר כברירת מחדל, כמו מסכי הניהול */
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Segoe UI",Arial,sans-serif}
 .wrap{max-width:680px;margin:auto;padding:0 16px 110px}
 header{text-align:center;padding:34px 0 8px}
@@ -56,7 +57,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:34px}
 .ed-ph{display:grid;place-items:center;border:2px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px;min-height:64px;min-width:64px;padding:6px}
 header .ed-ph{aspect-ratio:16/9;margin-top:16px;border-radius:18px}
 .ed-tools{display:flex;gap:4px;flex-wrap:wrap}
-.ed-tools button,.ed-add{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 9px;cursor:pointer}
+.ed-tools button,.ed-add{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 9px;cursor:pointer;min-width:38px;min-height:38px}  /* גודל אצבע בטלפון */
 .ed-add{display:block;width:100%;padding:9px;border-style:dashed;margin-bottom:10px}
 .ed-sec{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .ed-hidden{opacity:.45}
@@ -94,3 +95,9 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 .sk-grid{grid-template-columns:1fr 1fr}.sk-grid b{width:100%;height:16px}.sk-grid i{display:block}
 .sk-big i{flex-direction:column;align-items:stretch}.sk-big b{height:28px}
 .sk-text i{flex-direction:column;align-items:stretch;gap:2px}.sk-text s{flex:none;width:60%;opacity:.2}
+/* אחרי הזמנה: חלון תשלום מעל הכפתור הירוק */
+.paysheet{position:fixed;inset:auto 0 0;z-index:20;max-width:680px;margin:auto;background:var(--card);border:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -6px 24px #0003;padding:18px 16px 22px;text-align:center}
+.paysheet p{margin:8px 0}.paysheet .sum{font-size:20px}.paysheet small{display:block;color:var(--muted);font-size:13px;margin-top:6px}
+.paysheet .x{position:absolute;top:6px;left:8px;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;width:44px;height:44px}
+.paybtn{display:block;background:var(--accent);color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:14px;border-radius:14px;margin-top:10px}
+.paysheet .copy{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:6px 10px;cursor:pointer;margin-top:6px}

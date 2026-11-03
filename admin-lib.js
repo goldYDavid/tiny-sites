@@ -130,3 +130,25 @@ const FILL_NEEDS = 'לוגו, תמונות, מחירים, שעות פתיחה, �
 const fillLabel = f => f === true ? 'מילוי מלא' : FILLS[f] ? `מילוי ${FILLS[f].label} (${FILLS[f].price} ₪)` : '';
 // קישור בתוך הניהול שומר על מצב הבדיקה המקומי
 const href = (page, q = '') => page + '?' + q + (window.SUPABASE_URL ? '' : (q ? '&' : '') + 'local');
+// מסכי הניהול (<html data-themed>): בהיר כברירת מחדל, גם כשהטלפון במצב כהה. כפתור 🌙/☀️ למעבר — נשמר במכשיר
+if (document.documentElement.hasAttribute('data-themed')) {
+  const set = t => { document.documentElement.dataset.theme = t; try { localStorage.setItem('tiny-theme', t); } catch {} btn.textContent = t === 'dark' ? '☀️' : '🌙'; btn.setAttribute('aria-label', t === 'dark' ? 'מעבר לתצוגה בהירה' : 'מעבר לתצוגה כהה'); };
+  const btn = Object.assign(document.createElement('button'), { type: 'button', onclick: () => set(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark') });
+  btn.style.cssText = 'position:absolute;top:10px;left:10px;z-index:50;width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;line-height:1;border:1px solid var(--line);background:var(--card);box-shadow:0 2px 8px #0002;cursor:pointer';
+  let t = 'light'; try { t = localStorage.getItem('tiny-theme') || 'light'; } catch {} set(t); if (document.documentElement.dataset.themed !== 'nobtn') document.body.append(btn);  // בעורך: בלי כפתור (הסרגל העליון), אבל אותה בחירה
+}
+
+// התראות בטלפון על פנייה/הזמנה חדשה (Web Push). באייפון: רק אחרי "הוספה למסך הבית" ופתיחה משם
+const pushState = () => !('serviceWorker' in navigator) || !('PushManager' in window) ? (/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone ? 'ios-home' : 'no')
+  : Notification.permission === 'denied' ? 'denied' : 'ok';
+async function pushOn() {
+  const reg = await navigator.serviceWorker.register('sw.js');
+  if (await Notification.requestPermission() !== 'granted') throw new Error('denied');
+  const key = Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  if (!sb) return LS.set('push', sub.toJSON());
+  const { error } = await sb.from('push_subs').upsert({ endpoint: sub.endpoint, owner: UID, sub: sub.toJSON() }); if (error) throw error;
+}
+async function pushIsOn() { if (pushState() !== 'ok' || Notification.permission !== 'granted') return false; const reg = await navigator.serviceWorker.getRegistration('sw.js'); return !!(reg && await reg.pushManager.getSubscription()); }
+async function pushOff() { const reg = await navigator.serviceWorker.getRegistration('sw.js'), sub = reg && await reg.pushManager.getSubscription(); if (!sub) return;
+  if (sb) await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
