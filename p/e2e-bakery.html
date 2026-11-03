@@ -35,7 +35,8 @@ function render(site) {
 function update() {
   const lines = []; let sum = 0;
   for (const [k, q] of Object.entries(cart)) if (q) { const [si, ii] = k.split('-'), it = SITE.sections[si].items[ii]; lines.push(`${q} × ${it.name}`); sum += q * it.price; }
-  const text = lines.length ? `שלום, אשמח להזמין:\n${lines.join('\n')}\nסה"כ: ${Math.round(sum * 100) / 100} ₪` : `שלום, הגעתי מהאתר של ${SITE.name}`;
+  const m = (SITE.pay || {}).method, paid = m && m !== 'none' ? `\nתשלום: ${m === 'link' ? 'בקישור התשלום שבאתר' : 'ב' + PAY_WAYS[m]}` : '';
+  const text = lines.length ? `שלום, אשמח להזמין:\n${lines.join('\n')}\nסה"כ: ${Math.round(sum * 100) / 100} ₪${paid}` : `שלום, הגעתי מהאתר של ${SITE.name}`;
   const a = document.getElementById('cta'); ORDER = { items: lines, total: Math.round(sum * 100) / 100 };
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
@@ -52,7 +53,21 @@ document.addEventListener('submit', e => { const f = e.target.closest('form[data
   window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
 // הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
-document.getElementById('cta').addEventListener('click', () => { if (ORDER.items.length && !demo) sendLead(slug, 'order', ORDER).catch(() => {}); });
+document.getElementById('cta').addEventListener('click', () => { if (!ORDER.items.length || demo) return; sendLead(slug, 'order', ORDER).catch(() => {}); payNow(ORDER.total); });
+// אחרי הזמנה: כפתור תשלום עם הסכום, לפי מה שבעל העסק בחר (ביט / פייבוקס / קישור משלו). בלי סליקה — רק הודעת הוואטסאפ
+function payNow(total) {
+  const p = SITE.pay || {}; if (!p.method || p.method === 'none' || (p.method !== 'bit' && !p.link)) return;
+  const name = p.method === 'link' ? 'לתשלום' : 'תשלום ב' + PAY_WAYS[p.method], ph = p.phone ? '0' + String(p.phone).replace(/^972/, '') : '';
+  document.getElementById('paysheet')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `<div class="paysheet" id="paysheet" role="dialog" aria-label="תשלום"><button class="x" aria-label="סגירה">✕</button>
+    <b>ההזמנה נשלחה בוואטסאפ ✓</b><p class="sum">לתשלום: <b>${total} ₪</b></p>
+    ${p.link ? `<a class="paybtn" href="${esc(p.link)}" target="_blank" rel="noopener">${name} · ${total} ₪</a><small>בדף התשלום מקלידים את הסכום: ${total} ₪ (הסכום מועתק בלחיצה)</small>` : ''}
+    ${p.method === 'bit' && ph ? `<p>${p.link ? 'או העברה' : 'העברה'} בביט למספר <b dir="ltr">${ph}</b> <button class="copy" data-copy="${ph}">העתקת המספר</button></p>` : ''}</div>`);
+}
+document.addEventListener('click', e => { const s = e.target.closest('#paysheet'); if (!s) return;
+  if (e.target.closest('.x')) return s.remove();
+  const c = e.target.closest('.copy'); if (c) navigator.clipboard?.writeText(c.dataset.copy).then(() => c.textContent = 'הועתק ✓', () => {});
+  if (e.target.closest('.paybtn')) navigator.clipboard?.writeText(String(ORDER.total)).catch(() => {}); });
 document.addEventListener('click', e => { const b = e.target.closest('.qty button'); if (!b) return;
   const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
 
