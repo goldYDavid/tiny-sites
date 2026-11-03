@@ -61,11 +61,19 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
   const fresh = await window.loadSite(slug).catch(() => 'offline');  // בלי רשת ← נשארים עם העותק השמור
-  if (fresh && fresh.paused) { try { localStorage.removeItem(key); } catch {} document.title = fresh.name || 'הדף בהשהיה';
-    document.querySelector('.bar').remove(); return document.getElementById('app').innerHTML = '<p class="paused">הדף בהשהיה זמנית</p>'; }
+  if (fresh && fresh.paused) return closed('paused', fresh.name);
   if (fresh === 'offline') { if (!SITE) document.getElementById('app').innerHTML = '<p class="paused">אין חיבור לאינטרנט — נסו שוב</p>'; return; }
   if (fresh) { try { localStorage.setItem(key, JSON.stringify(fresh)); } catch {} if (JSON.stringify(fresh) !== JSON.stringify(SITE)) render(fresh); }
-  else { try { localStorage.removeItem(key); } catch {} document.querySelector('.bar').remove(); document.getElementById('app').innerHTML = '<p class="paused">הדף לא זמין כרגע</p>'; }  // לא קיים / לא מפורסם
+  else { const st = await fetch(`${SUPABASE_URL}/rest/v1/rpc/page_status`, { method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Profile': 'tiny', 'Content-Type': 'application/json' }, body: JSON.stringify({ p_slug: slug }) }).then(r => r.json()).catch(() => null);
+    closed(st ? st.state : 'none', st && st.name); }
+  // דף שהגולש לא יכול לראות: הסבר לפי הסיבה, ולבעל העסק — מה לעשות
+  function closed(state, name) { try { localStorage.removeItem(key); } catch {} document.querySelector('.bar')?.remove();
+    const n = name && name !== 'שם העסק' ? esc(name) : 'העסק', own = '<p class="own">בעל העסק? <a href="admin.html">כניסה לניהול הדף</a></p>';
+    const M = { draft: [`הדף של ${n} עוד לא פורסם`, 'הדף ייפתח לציבור אחרי שבעל העסק יבחר חבילה וישלים את התשלום.', own],
+      paused: [`הדף של ${n} מושהה`, 'המנוי השנתי של הדף לא חודש, ולכן הוא לא מוצג כרגע. הדף ייפתח שוב מיד אחרי החידוש.', own],
+      live: ['הדף לא זמין כרגע', 'נסו לרענן בעוד כמה דקות.', ''],
+      none: ['לא מצאנו דף בכתובת הזו', 'כדאי לבדוק שהקישור הועתק במלואו.', '<p class="own"><a href="admin.html">רוצים דף כזה לעסק שלכם? מתחילים בחינם</a></p>'] }[state] || [];
+    document.title = M[0]; document.getElementById('app').innerHTML = `<div class="paused"><h2>${M[0]}</h2><p>${M[1]}</p>${M[2]}</div>`; }
 })();
 </script>
 </body>
