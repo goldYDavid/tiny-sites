@@ -91,7 +91,9 @@ function draw() {
       <div class="tools"><button class="primary" id="create">יצירת הדף ומעבר לעריכה</button></div>`
     : !PUB ? `<p class="muted">לפני הפרסום אפשר לבנות דף אחד. דפים נוספים — אחרי הפרסום, לפי החבילה.</p>`
     : `<p>החבילה שלך כוללת ${L} ${L === 1 ? 'דף' : 'דפים'}, וכולם בשימוש.</p>
-      ${upgrades().length ? `<p class="muted">לדף נוסף צריך לשדרג חבילה:</p><div class="tools">${upgrades().join('')}</div>` : `<p class="muted">לדפים נוספים פנו אלינו בוואטסאפ.</p>${SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}">וואטסאפ</a>` : ''}`}`}</div>`;
+      ${upgrades().length ? `<p class="muted">לדף נוסף צריך לשדרג חבילה:</p><div class="tools">${upgrades().join('')}</div>` : `<p class="muted">לדפים נוספים פנו אלינו בוואטסאפ.</p>${SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}">וואטסאפ</a>` : ''}`}`}</div>
+  <div class="card"><h2>מחיקת החשבון</h2><small class="muted">מוחק את העסק, כל הדפים, הפניות וההזמנות והתמונות. אי אפשר לשחזר.</small>
+    <div class="tools"><button id="delAccount" style="color:#c0392b;border-color:#c0392b">מחיקת החשבון לצמיתות</button></div></div>`;
 }
 // מפורסם = שולם ותאריך החידוש לא עבר לפני יותר מ־14 יום (כמו בשרת). לפני תשלום — טיוטה שרק בעל העסק רואה
 let PUB = false, REQ_PLAN = 1, REQ_FILL = '';
@@ -191,6 +193,11 @@ document.addEventListener('click', async e => {
       if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
       location.href = href('edit.html', 's=' + slug);
     } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message)); }
+  }
+  if (b.id === 'delAccount' && confirm('למחוק את החשבון לצמיתות?\nיימחקו העסק, כל הדפים (הם יירדו מהאוויר), הפניות, ההזמנות והתמונות. אי אפשר לשחזר.')) {
+    b.disabled = true; msg('מוחק את החשבון…');
+    try { await DB.deleteAccount(); $('app').innerHTML = '<h1>החשבון נמחק</h1><div class="card"><p>כל הנתונים שלך נמחקו. תודה שהייתם איתנו.</p></div>'; }
+    catch (err) { b.disabled = false; msg('❌ המחיקה נכשלה: ' + err.message); }
   }
   if (b.dataset.del && confirm('למחוק את הדף לצמיתות?')) {
     try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('❌ שגיאה: ' + err.message); }

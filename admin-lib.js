@@ -111,6 +111,14 @@ const DB = {
     const { error } = await sb.storage.from('tiny-sites-images').upload(path, blob, { contentType: 'image/webp' });
     if (error) throw error; return sb.storage.from('tiny-sites-images').getPublicUrl(path).data.publicUrl;
   },
+  // מחיקת החשבון: רק נתוני דפי הנחיתה (הפונקציה tiny-delete-account). אחר כך יציאה
+  async deleteAccount() {
+    if (!sb) { ['biz', 'pages', 'leads', 'limit', 'renews', 'request', 'push'].forEach(k => localStorage.removeItem(k)); return; }
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/tiny-delete-account`, { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_KEY } });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status);
+    await sb.auth.signOut().catch(() => {}); localStorage.removeItem('tiny-auth'); return j;
+  },
 };
 // הקטנת תמונה בדפדפן לפני העלאה — דף מהיר גם עם תמונות מהטלפון
 // SVG (לוגו) מצויר לתמונה רגילה — לא שומרים קבצי SVG בשרת
