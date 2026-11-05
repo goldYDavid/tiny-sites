@@ -15,7 +15,7 @@
 h1{font-size:22px;margin:8px 0 16px}h2{font-size:18px;margin:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 2px}
-input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 input[type=color]{height:44px;padding:4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}  /* בטלפון: שדה אחד בכל שורה, ברוחב מלא */
 .tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
@@ -53,14 +53,23 @@ const PAY_HELP = {
   paybox: `באפליקציית פייבוקס פותחים קבוצה ציבורית לתשלומים ומשתפים את הקישור שלה (לחיצה על "שיתוף" בקבוצה). מדביקים את הקישור כאן. הלקוח יקליד בפייבוקס את הסכום שמוצג לו. ${A('https://www.payboxapp.com/groups', 'קבוצות בפייבוקס')} · ${A('https://www.payboxapp.com/business', 'פייבוקס לעסקים')}`,
   link: 'דף תשלום שקיבלתם מחברת סליקה (למשל Grow, חשבונית ירוקה, Cardcom או PayPal). מדביקים כאן את הקישור, והלקוח יקליד בו את הסכום שמוצג לו.',
 };
+PAY_HELP.bank = 'פרטי החשבון יוצגו ללקוח אחרי ההזמנה, עם כפתור העתקה.';
+PAY_HELP.cash = 'הלקוח יראה שאפשר לשלם במזומן באיסוף או במסירה.';
+// אפשרויות שמסומנות כרגע (גם לפני שמירה) + מה שכבר הוקלד בשדות — כדי שסימון נוסף לא ימחק את מה שהוקלד
+let PAYSEL = null;
+const payRead = () => { if (!PAYSEL) return; for (const k in PAYSEL) for (const f of ['phone', 'link', 'details']) { const el = $(`p_${k}_${f}`); if (el) PAYSEL[k][f] = el.value; } };
 function payCard() {
-  const p = BIZ.settings.pay || {}, m = PAY || p.method || 'none', phone = p.phone || BIZ.settings.phone;
-  return `<h2>תשלום מהלקוחות</h2><small class="muted">הכסף עובר ישר אליכם. אחרי הזמנה הלקוח רואה כפתור תשלום עם הסכום</small>
-    <div class="fills" style="margin-top:10px">${Object.entries(PAY_WAYS).map(([k, l]) => `<button data-pay="${k}" aria-pressed="${k === m}">${l}</button>`).join('')}</div>
-    <p class="muted" style="font-size:14px">${PAY_HELP[m]}</p>
-    ${m === 'bit' ? `<label>מספר הטלפון שמחובר לביט</label><input id="p_phone" inputmode="tel" value="${phone ? '0' + String(phone).replace(/^972/, '') : ''}">` : ''}
-    ${m !== 'none' ? `<label>${m === 'bit' ? 'קישור לתשלום בביט (לא חובה)' : m === 'paybox' ? 'הקישור לקבוצה בפייבוקס' : 'הקישור לדף התשלום'}</label><input id="p_link" dir="ltr" inputmode="url" placeholder="מדביקים כאן את הקישור" value="${esc(p.method === m ? p.link : '')}">` : ''}
-    <div class="tools"><button class="primary" id="savePay">שמירת אפשרות התשלום</button></div>`;
+  if (!PAYSEL) { PAYSEL = structuredClone(payWays(BIZ.settings.pay)); for (const k in PAYSEL) if (PAYSEL[k].phone) PAYSEL[k].phone = '0' + String(PAYSEL[k].phone).replace(/^972/, ''); }
+  const fld = (k, f, label, attrs = '') => `<label>${label}</label>${f === 'details' ? `<textarea id="p_${k}_${f}" rows="3" placeholder="למשל: בנק לאומי, סניף 123, חשבון 456789, על שם ישראל ישראלי">${esc(PAYSEL[k][f] || '')}</textarea>` : `<input id="p_${k}_${f}" ${attrs} value="${esc(PAYSEL[k][f] || '')}">`}`;
+  const LINK = 'dir="ltr" inputmode="url" placeholder="מדביקים כאן את הקישור"';
+  const parts = { bit: () => fld('bit', 'phone', 'מספר הטלפון שמחובר לביט', 'inputmode="tel"') + fld('bit', 'link', 'קישור לתשלום בביט (לא חובה)', LINK),
+    paybox: () => fld('paybox', 'link', 'הקישור לקבוצה בפייבוקס', LINK), link: () => fld('link', 'link', 'הקישור לדף התשלום', LINK),
+    bank: () => fld('bank', 'details', 'פרטי החשבון להעברה'), cash: () => '' };
+  return `<h2>תשלום מהלקוחות</h2><small class="muted">הכסף עובר ישר אליכם. אפשר לסמן כמה אפשרויות, והלקוח בוחר אחרי ההזמנה איך לשלם</small>
+    <div class="fills" style="margin-top:10px">${Object.entries(PAY_WAYS).map(([k, l]) => `<button data-pay="${k}" aria-pressed="${!!PAYSEL[k]}">${PAYSEL[k] ? '✓ ' : ''}${l}</button>`).join('')}</div>
+    ${Object.keys(PAY_WAYS).filter(k => PAYSEL[k]).map(k => `<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px"><b>${PAY_WAYS[k]}</b><p class="muted" style="font-size:14px;margin:4px 0">${PAY_HELP[k]}</p>${parts[k]()}</div>`).join('')
+      || `<p class="muted" style="font-size:14px">${PAY_HELP.none}</p>`}
+    <div class="tools"><button class="primary" id="savePay">שמירת אפשרויות התשלום</button></div>`;
 }
 
 function draw() {
@@ -161,17 +170,23 @@ document.addEventListener('click', async e => {
     window.open(`https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + human(err)); }
   }
-  if (b.dataset.pay) { PAY = b.dataset.pay; $('pay').innerHTML = payCard(); }  // רק הכרטיס — בלי לאבד שדות אחרים שעוד לא נשמרו
-  if (b.id === 'savePay') {
-    const method = PAY || (BIZ.settings.pay || {}).method || 'none', link = $('p_link') ? $('p_link').value.trim() : '', pay = { method };
-    if (link && !/^https:\/\/\S+\.\S+/.test(link)) return bad('p_link', 'הקישור לא תקין — צריך להתחיל ב־https://');
-    if ((method === 'paybox' || method === 'link') && !link) return bad('p_link', 'צריך להדביק את הקישור לתשלום');
-    if (link) pay.link = link;
-    if (method === 'bit') { const ph = $('p_phone').value.replace(/\D/g, '');
-      if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('p_phone', 'מספר הטלפון לא תקין — 10 ספרות שמתחילות ב־05');
-      pay.phone = ph.replace(/^0/, '972'); }
-    const s = { ...BIZ.settings, pay };
-    try { await DB.saveBiz(s); BIZ.settings = s; PAY = null; msg('✓ נשמר — ' + (method === 'none' ? 'הלקוחות ישלחו הזמנה בוואטסאפ בלבד' : 'אחרי הזמנה הלקוחות יראו כפתור תשלום' + (method === 'link' ? '' : ' ב' + PAY_WAYS[method]))); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
+  if (b.dataset.pay) { payRead(); const k = b.dataset.pay;  // סימון/ביטול — רק הכרטיס מתרענן, בלי לאבד שדות אחרים
+    if (PAYSEL[k]) delete PAYSEL[k]; else PAYSEL[k] = k === 'bit' ? { phone: BIZ.settings.phone ? '0' + String(BIZ.settings.phone).replace(/^972/, '') : '' } : {};
+    $('pay').innerHTML = payCard(); }
+  if (b.id === 'savePay') { payRead();
+    const ways = {};
+    for (const k of Object.keys(PAY_WAYS).filter(k => PAYSEL[k])) { const v = PAYSEL[k], link = (v.link || '').trim(), w = ways[k] = {};
+      if (link && !/^https:\/\/\S+\.\S+/.test(link)) return bad(`p_${k}_link`, `הקישור של ${PAY_WAYS[k]} לא תקין — צריך להתחיל ב־https://`);
+      if ((k === 'paybox' || k === 'link') && !link) return bad(`p_${k}_link`, `צריך להדביק את הקישור לתשלום ב${PAY_WAYS[k]}`);
+      if (link) w.link = link;
+      if (k === 'bit') { const ph = (v.phone || '').replace(/\D/g, '');
+        if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('p_bit_phone', 'מספר הטלפון של ביט לא תקין — 10 ספרות שמתחילות ב־05');
+        w.phone = ph.replace(/^0/, '972'); }
+      if (k === 'bank') { const d = (v.details || '').trim(); if (d.length < 8) return bad('p_bank_details', 'צריך לכתוב את פרטי החשבון: בנק, סניף, מספר חשבון ושם'); w.details = d.slice(0, 300); } }
+    // method/link/phone: לדפי שיתוף ישנים שעוד לא נוצרו מחדש (קוראים רק אפשרות אחת)
+    const first = Object.keys(ways)[0], pay = { ways, method: first || 'none', ...(first && ways[first].link && { link: ways[first].link }), ...(first && ways[first].phone && { phone: ways[first].phone }) };
+    const s = { ...BIZ.settings, pay }, names = Object.keys(ways).map(k => PAY_WAYS[k]);
+    try { await DB.saveBiz(s); BIZ.settings = s; PAYSEL = null; $('pay').innerHTML = payCard(); msg('✓ נשמר — ' + (names.length ? 'אחרי הזמנה הלקוחות יוכלו לשלם ב: ' + names.join(', ') : 'הלקוחות ישלחו הזמנה בוואטסאפ בלבד')); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }
   if (b.dataset.type) { TYPE = b.dataset.type; document.querySelectorAll('[data-type]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
   if (b.id === 'saveBiz') {

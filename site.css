@@ -101,3 +101,5 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 .paysheet .x{position:absolute;top:6px;left:8px;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;width:44px;height:44px}
 .paybtn{display:block;background:var(--accent);color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:14px;border-radius:14px;margin-top:10px}
 .paysheet .copy{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:6px 10px;cursor:pointer;margin-top:6px}
+.paysheet{max-height:85vh;overflow-y:auto}
+.payrow{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px}.payrow p{margin:4px 0}

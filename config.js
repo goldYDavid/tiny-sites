@@ -5,7 +5,11 @@ window.SITE_SLUG = 'demo';
 window.VAPID_PUBLIC = 'BB8pSlE8nOYBqwQhKCoRA1gVqozMJPAe2y10lkwDSz-d-oFlJgs9OHBmoHtDKTgsslqswWiv52880X82XXLEFM4';  // התראות בטלפון — מפתח ציבורי (הפרטי בכספת של השרת)
 window.SALES_PHONE = '972584433453';  // וואטסאפ שלנו — בעל עסק שהגיע למכסת הדפים פונה לכאן לשדרוג חבילה
 // איך הלקוח משלם לבעל העסק (settings.pay.method) — הכסף הולך ישר לבעל העסק, לא דרכנו
-window.PAY_WAYS = { none: 'בלי סליקה — רק הודעה מוכנה', bit: 'ביט', paybox: 'פייבוקס', link: 'קישור תשלום אחר' };
+// בעל העסק יכול לסמן כמה אפשרויות יחד: settings.pay.ways = { bit: {phone, link?}, paybox: {link}, link: {link}, bank: {details}, cash: {} }
+window.PAY_WAYS = { bit: 'ביט', paybox: 'פייבוקס', link: 'כרטיס אשראי (קישור תשלום)', bank: 'העברה בנקאית', cash: 'מזומן' };
+// הגדרה ישנה (method אחד) ← ways
+window.payWays = p => { p = p || {}; if (p.ways) return p.ways; if (!p.method || p.method === 'none') return {};
+  return { [p.method]: { ...(p.link && { link: p.link }), ...(p.phone && { phone: p.phone }) } }; };
 if (new URLSearchParams(location.search).has('local')) window.SUPABASE_URL = '';  // ?local — בדיקה בלי שרת
 
 // דף = הגדרות העסק (שם, טלפון, צבע...) + תוכן הדף. בקשה אחת לשרת.
