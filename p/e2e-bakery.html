@@ -116,7 +116,7 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
   const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
 
 (async () => {
-  if (demo) { render(demoSite(demo)); return document.getElementById('app').insertAdjacentHTML('afterbegin', '<div class="draft" style="background:#2563eb">דף לדוגמה — נסו להוסיף מוצרים ולהזמין · <a href="admin.html" style="color:#fff">רוצים דף כזה?</a></div>'); }
+  if (demo) { render(demoSite(demo)); return document.getElementById('app').insertAdjacentHTML('afterbegin', `<div class="draft" style="background:#2563eb">דף לדוגמה — ${SITE.sections.some(x => x.kind === 'products') ? 'נסו להוסיף מוצרים ולהזמין' : 'כך ייראה הדף של העסק שלכם'} · <a href="admin.html" style="color:#fff">רוצים דף כזה?</a></div>`); }
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
   const fresh = await window.loadSite(slug).catch(() => 'offline');  // בלי רשת ← נשארים עם העותק השמור
