@@ -18,11 +18,12 @@
 <script>
 // הצגה: קודם מהמטמון (מיידי), ואז עדכון מהשרת ברקע
 const qs = new URLSearchParams(location.search), slug = (qs.get('s') || window.PAGE_SLUG || window.SITE_SLUG).trim().toLowerCase().replace(/[^a-z0-9-]+$/, ''),  // קישור מוואטסאפ מגיע לפעמים עם נקודה/סוגריים בסוף או אותיות גדולות  // PAGE_SLUG: עותק קבוע של הדף ב-p/ (תצוגה מקדימה בוואטסאפ)
-      demo = qs.get('demo');
+      demo = qs.get('demo'), pv = qs.has('pv');
+if (pv) document.querySelector('.bar').style.display = 'none';  // pv: תצוגה מקדימה בתוך מסך הניהול — לא שולחים פניות והזמנות
 let SITE, cart = {}, ORDER = { items: [] };
 function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;
-  applyColors(site);  // ראשי + משני לפי כלל ההרמוניה (config.js)
+  applyColors(window.PV_COLORS || site);  // ראשי + משני לפי כלל ההרמוניה (config.js). PV_COLORS: תצוגה מקדימה מהניהול
   const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
   app.innerHTML = (site.draft ? '<div class="draft">טיוטה — הדף עוד לא מפורסם, ורק אתם רואים אותו</div>' : '') + renderSite(site, false, cart);
   update();
@@ -36,19 +37,20 @@ function update() {
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
   if (demo) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? מתחילים בחינם ←'; }  // דף לדוגמה ← הרשמה
+  if (pv) a.removeAttribute('href');
 }
 // טופס השארת פרטים ← נשמר בפניות של בעל העסק + נפתחת הודעת וואטסאפ מוכנה אליו (כדי שיידע מיד)
 document.addEventListener('submit', e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
   const { website, ...d } = Object.fromEntries(new FormData(f)), section = SITE.sections[f.dataset.lead].title;
   const thanks = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>';
   if (website) return f.innerHTML = thanks;  // שדה נסתר שרק תוכנות ספאם ממלאות
-  if (demo) return f.innerHTML = thanks + '<p class="muted">זו דוגמה — בדף שלכם הפנייה תגיע אליכם לוואטסאפ ולמסך הניהול</p>';
+  if (demo || pv) return f.innerHTML = thanks + '<p class="muted">זו דוגמה — בדף שלכם הפנייה תגיע אליכם לוואטסאפ ולמסך הניהול</p>';
   sendLead(slug, 'lead', { ...d, section }).catch(() => {});
   const text = `שלום, השארתי פרטים באתר (${section}):\nשם: ${d.name}\nטלפון: ${d.phone}${d.message ? '\n' + d.message : ''}`;
   window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
 // הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
-document.getElementById('cta').addEventListener('click', () => { if (!ORDER.items.length || demo) return; sendLead(slug, 'order', ORDER).catch(() => {}); payNow(ORDER.total); });
+document.getElementById('cta').addEventListener('click', () => { if (!ORDER.items.length || demo || pv) return; sendLead(slug, 'order', ORDER).catch(() => {}); payNow(ORDER.total); });
 // אחרי הזמנה: כפתור תשלום עם הסכום, לפי מה שבעל העסק בחר (ביט / פייבוקס / קישור משלו). בלי סליקה — רק הודעת הוואטסאפ
 function payNow(total) {
   const W = payWays(SITE.pay), ks = Object.keys(PAY_WAYS).filter(k => W[k] && (k === 'bit' ? W[k].phone || W[k].link : k === 'bank' ? W[k].details : k === 'cash' || W[k].link));
