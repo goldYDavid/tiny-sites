@@ -4,7 +4,7 @@
 import fs from 'node:fs'; import { fileURLToPath } from 'node:url';
 // בשרת של GitHub: playwright מ-npm. במחשב: מהתיקייה של פרויקט הפעמונים
 const { chromium } = await import(process.env.PLAYWRIGHT || 'file:///C:/Users/tty25/Desktop/codex%20projects/%D7%94%D7%96%D7%A0%D7%AA%20%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%20%D7%9C%D7%A4%D7%A2%D7%9E%D7%95%D7%A0%D7%99%D7%9D/node_modules/playwright/index.mjs');
-const root = fileURLToPath(new URL('..', import.meta.url)).split('\\').join('/'), BASE = 'https://goldydavid.github.io/tiny-sites/';
+const root = fileURLToPath(new URL('..', import.meta.url)).split('\\').join('/'), BASE = 'https://dafbiz.com/';
 const cfg = fs.readFileSync(root + 'config.js', 'utf8'), url = cfg.match(/SUPABASE_URL = '([^']+)'/)[1], key = cfg.match(/SUPABASE_KEY = '([^']+)'/)[1];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const rows = await (await fetch(`${url}/rest/v1/sites?select=slug,updated_at,content,businesses(settings)`, { headers: { apikey: key, 'Accept-Profile': 'tiny' } })).json();

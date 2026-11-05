@@ -1,5 +1,5 @@
 // בדיקה יומית: האתר והשרת עונים + תזכורות חידוש. נכשל (← GitHub שולח מייל) רק כשיש תקלה או חידוש קרוב.
-const BASE = 'https://goldydavid.github.io/tiny-sites/';
+const BASE = 'https://dafbiz.com/';
 const cfg = await (await fetch(BASE + 'config.js')).text(), url = cfg.match(/SUPABASE_URL = '([^']+)'/)[1], key = cfg.match(/SUPABASE_KEY = '([^']+)'/)[1];
 const out = [];
 for (const f of ['index.html', 'admin.html', 'legal.html', 'render.js', 'super.html', 'p/test.html']) { const r = await fetch(BASE + f).catch(() => ({ status: 0 })); if (r.status !== 200) out.push(`❌ האתר: ${f} החזיר ${r.status}`); }
