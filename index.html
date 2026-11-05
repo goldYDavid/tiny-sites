@@ -22,7 +22,7 @@ const qs = new URLSearchParams(location.search), slug = (qs.get('s') || window.P
 let SITE, cart = {}, ORDER = { items: [] };
 function render(site) {
   SITE = site; document.title = `${site.name} — ${site.tagline}`;
-  document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
+  applyColors(site);  // ראשי + משני לפי כלל ההרמוניה (config.js)
   const app = document.getElementById('app'); app.className = 'wrap t-' + (site.template || 'classic');
   app.innerHTML = (site.draft ? '<div class="draft">טיוטה — הדף עוד לא מפורסם, ורק אתם רואים אותו</div>' : '') + renderSite(site, false, cart);
   update();
@@ -91,7 +91,7 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
       live: ['הדף לא זמין כרגע', 'נסו לרענן בעוד כמה דקות.', ''],
       // מי שמגיע לכאן הוא בדרך כלל לקוח של עסק שקיבל קישור שגוי — קודם עוזרים לו להגיע לעסק, ורק בסוף הצעה למי שיש לו עסק
       none: ['לא מצאנו דף בכתובת הזו', `חיפשנו את הכתובת <b dir="ltr">${esc(slug)}</b> ולא מצאנו עסק כזה. ייתכן שהקישור לא הועתק במלואו או שיש בו טעות הקלדה.`,
-        '<p>הכי פשוט: לבקש מבעל העסק לשלוח שוב את הקישור לדף שלו.</p><p class="own"><a class="lead-btn" style="background:#2563eb;text-decoration:none;color:#fff" href="home">לדף הבית של dafbiz</a></p><p class="own muted">יש לכם עסק? <a href="?demo=food">ראו דף לדוגמה</a> · <a href="home#how">איך בונים דף משלכם בחינם</a></p>'] }[state] || [];
+        '<p>הכי פשוט: לבקש מבעל העסק לשלוח שוב את הקישור לדף שלו.</p><p class="own"><a class="lead-btn" style="background:#2563eb;text-decoration:none;color:#fff" href="home">לדף הבית</a></p><p class="own muted">יש לכם עסק? <a href="?demo=food">ראו דף לדוגמה</a> · <a href="home#how">איך בונים דף משלכם בחינם</a></p>'] }[state] || [];
     document.title = M[0]; document.getElementById('app').innerHTML = `<div class="paused"><h2>${M[0]}</h2><p>${M[1]}</p>${M[2]}</div>`; }
 })();
 </script>

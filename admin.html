@@ -17,6 +17,7 @@ h1{font-size:22px;margin:8px 0 16px}h2{font-size:18px;margin:0}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 2px}
 input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 input[type=color]{height:44px;padding:4px}
+.pals{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.pals button{display:flex;align-items:center;gap:8px;text-align:right;padding:8px 10px;font-size:14px}.pals button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}.dot{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid #0002}.cprev{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;padding:12px;border:1px dashed var(--line);border-radius:12px}.cprev span{color:#fff;font-weight:700;border-radius:99px;padding:6px 14px;font-size:14px}.cprev .pv-btn{border-radius:12px;padding:10px 16px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}  /* בטלפון: שדה אחד בכל שורה, ברוחב מלא */
 .tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;text-decoration:none;display:inline-block}
@@ -45,6 +46,21 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 let BIZ, PAGES, NEWLEADS = 0, TYPE = 'seasonal', PAY;
 
+// צבעים: ערכה מוכנה, או צבע ראשי משלכם + כלל שבוחר את הצבע המשני (config.js: palette)
+const dot = (a, b) => `<span class="dot" style="background:linear-gradient(90deg,${a} 50%,${b} 50%)"></span>`;
+function colorPick(accent, harmony) {
+  return `<label>ערכת צבעים מוכנה</label><div class="pals">${PALETTES.map(([n, c, h]) => { const q = palette(c, h); return `<button data-pal="${c}|${h}" aria-pressed="${c === accent && h === harmony}">${dot(q.accent, q.accent2)}${n}</button>`; }).join('')}</div>
+    <label>או צבע ראשי משלכם</label><input id="b_accent" type="color" value="${esc(accent)}"><div id="cbody">${colorBody(accent, harmony)}</div>`;
+}
+// החלק שמתעדכן בזמן גרירת הצבע (בלי לבנות מחדש את בוחר הצבע עצמו, כדי שלא ייסגר)
+function colorBody(accent, harmony) {
+  const p = palette(accent, harmony);
+  return `<label>הצבע המשני נבחר לבד, לפי כלל עיצוב:</label><input type="hidden" id="b_harmony" value="${harmony}">
+    <div class="pals">${Object.entries(HARMONIES).map(([k, [n, d]]) => { const q = palette(accent, k); return `<button data-harm="${k}" aria-pressed="${k === harmony}" title="${d}">${dot(q.accent, q.accent2)}${n}</button>`; }).join('')}</div>
+    <small class="muted">${HARMONIES[harmony][1]}</small>
+    <div class="cprev"><span class="pv-badge" style="background:${p.accent2}">הזמנות עד חמישי</span><span class="pv-btn" style="background:${p.accent}">הזמנה בוואטסאפ</span></div>
+    ${p.adjusted ? '<small class="muted">הצבע הראשי הוכהה מעט, כדי שטקסט לבן עליו יהיה קריא.</small>' : ''}`;
+}
 // תשלום מהלקוחות: בעל העסק בוחר ביט / פייבוקס / קישור משלו / בלי. אחרי הזמנה הלקוח רואה כפתור תשלום עם הסכום
 const A = (u, t) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
 const PAY_HELP = {
@@ -80,8 +96,8 @@ function draw() {
     <div class="grid2"><div><label>שם העסק</label><input id="b_name" value="${esc(s.name)}"></div>
       <div><label>לוגו — תמונה (PNG, JPG או SVG), או אימוג'י</label><div class="logo-pick" id="logoPick">${logoPick(s)}</div></div>
       <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
-      <div><label>צבע ראשי</label><input id="b_accent" type="color" value="${esc(s.accent || '#c8741a')}"></div></div>
-    <label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}">
+      <div><label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}"></div></div>
+    <div id="colors">${colorPick(s.accent || '#c8741a', s.harmony || 'analog')}</div>
     <div class="tools"><button class="primary" id="saveBiz">שמירת ההגדרות</button></div></div>
   <div class="card" id="pay">${payCard()}</div>
   ${PUB ? `<div class="card" id="plan"><div class="head"><h2>החבילה שלי</h2><span class="muted">${L} ${L === 1 ? 'דף' : 'דפים'}${PLANS[L] ? ' · ' + PLANS[L] + ' ₪ לשנה' : ''}</span></div>
@@ -156,6 +172,7 @@ document.addEventListener('change', async e => {
   try { const url = await DB.uploadLogo(await shrink(f, 512)); BIZ.settings = { ...BIZ.settings, logo_img: url }; await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('הלוגו הועלה ✓'); }
   catch (err) { msg('❌ ההעלאה נכשלה: ' + human(err)); }
 });
+document.addEventListener('input', e => { if (e.target.id === 'b_accent') { $('cbody').innerHTML = colorBody(e.target.value, $('b_harmony').value); document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-pressed', false)); } });
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.copy) { const u = shareUrl(b.dataset.copy); navigator.clipboard.writeText(u).then(() => msg('הקישור הועתק ✓ אפשר להדביק בוואטסאפ'), () => prompt('הקישור לשיתוף:', u)); }
@@ -170,6 +187,7 @@ document.addEventListener('click', async e => {
     window.open(`https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + human(err)); }
   }
+  if (b.dataset.pal || b.dataset.harm) { if (b.dataset.pal) { const [a, h] = b.dataset.pal.split('|'); $('colors').innerHTML = colorPick(a, h); } else $('colors').innerHTML = colorPick($('b_accent').value, b.dataset.harm); }
   if (b.dataset.pay) { payRead(); const k = b.dataset.pay;  // סימון/ביטול — רק הכרטיס מתרענן, בלי לאבד שדות אחרים
     if (PAYSEL[k]) delete PAYSEL[k]; else PAYSEL[k] = k === 'bit' ? { phone: BIZ.settings.phone ? '0' + String(BIZ.settings.phone).replace(/^972/, '') : '' } : {};
     $('pay').innerHTML = payCard(); }
@@ -194,7 +212,7 @@ document.addEventListener('click', async e => {
     if (!$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
     if (!ph) return bad('b_phone', 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
     if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05');
-    const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo') ? $('b_logo').value.trim() : BIZ.settings.logo || '', accent: $('b_accent').value,
+    const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo') ? $('b_logo').value.trim() : BIZ.settings.logo || '', accent: $('b_accent').value, harmony: $('b_harmony').value,
       phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
     try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }

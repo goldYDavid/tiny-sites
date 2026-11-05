@@ -37,3 +37,29 @@ window.sendLead = (slug, kind, data) => {
       fetch(`${SUPABASE_URL}/functions/v1/tiny-notify`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }) }).catch(() => {}); });
   return r;
 };
+
+// ===== צבעים: בעל העסק בוחר צבע ראשי; הצבע המשני נגזר אוטומטית לפי כללי הרמוניה מגלגל הצבעים =====
+// settings.accent = הצבע הראשי, settings.harmony = הכלל (ברירת מחדל: analog)
+window.HARMONIES = { analog: ['הרמוני', 'צבע שכן בגלגל הצבעים — רגוע ונעים', -30], split: ['משלים מפוצל', 'קרוב לצבע הנגדי (150°) — בולט אבל מאוזן', 150],
+  comp: ['משלים', 'הצבע הנגדי בגלגל (180°) — הכי בולט', 180], triad: ['משולש', 'שליש סיבוב בגלגל (120°) — צבעוני ושמח', 120], mono: ['גוון אחד', 'אותו צבע, כהה יותר — שקט ומקצועי', 0] };
+// ערכות מוכנות: צבע ראשי + כלל
+window.PALETTES = [['טרקוטה', '#c8741a', 'analog'], ['אדום יין', '#9b2c3a', 'split'], ['ירוק יער', '#1f7a5a', 'analog'], ['כחול ים', '#1d5fa8', 'split'],
+  ['סגול', '#6b3fa0', 'triad'], ['טורקיז', '#0f7c8c', 'comp'], ['חום עץ', '#8a5a2b', 'mono'], ['פחם', '#2f3640', 'split']];
+(() => {
+  const hex2hsl = h => { const n = parseInt(String(h || '#c8741a').replace('#', '').padEnd(6, '0').slice(0, 6), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; let hh = 0, s = 0;
+    if (d) { s = d / (1 - Math.abs(2 * l - 1)); hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh *= 60; if (hh < 0) hh += 360; }
+    return [hh, s, l]; };
+  const hsl2hex = (h, s, l) => { const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4); };
+  const lum = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => (v /= 255) <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0); };
+  const contrast = hex => 1.05 / (lum(hex) + .05);  // מול טקסט לבן
+  // מכהה עד שטקסט לבן קריא (WCAG לטקסט מודגש: 3:1)
+  const readable = (h, s, l) => { let x = hsl2hex(h, s, l); while (contrast(x) < 3 && l > .05) { l -= .02; x = hsl2hex(h, s, l); } return x; };
+  window.palette = (accent, harmony) => { const [h, s, l] = hex2hsl(accent), H = HARMONIES[harmony] ? harmony : 'analog', rot = HARMONIES[H][2];
+    const main = readable(h, s, l), [mh, ms, ml] = hex2hsl(main);
+    const second = H === 'mono' ? readable(h, Math.min(1, s * .9), Math.max(.12, ml - .14)) : readable((h + rot + 360) % 360, Math.max(.35, Math.min(.85, s)), Math.min(.5, Math.max(.32, ml)));
+    return { accent: main, accent2: second, adjusted: main.toLowerCase() !== String(accent || '').toLowerCase() }; };
+  window.applyColors = site => { const p = palette(site.accent || '#c8741a', site.harmony), r = document.documentElement.style;
+    r.setProperty('--accent', p.accent); r.setProperty('--accent2', p.accent2); return p; };
+})();

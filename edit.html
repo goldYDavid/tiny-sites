@@ -44,7 +44,7 @@ const setPath = (o, p, v) => { const k = p.split('.'); const last = k.pop(); k.r
 
 function draw() {
   const site = { ...BIZ.settings, ...C };
-  document.documentElement.style.setProperty('--accent', site.accent || '#c8741a');
+  applyColors(site);  // ראשי + משני לפי כלל ההרמוניה (config.js)
   $('app').className = 'wrap ed t-' + (C.template || 'classic');
   $('app').innerHTML = renderSite(site, true) + `<div class="card addsec"><b>הוספת מקטע לדף</b>
     <select id="newKind">${Object.entries(KINDS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>

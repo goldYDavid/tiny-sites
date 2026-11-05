@@ -8,7 +8,7 @@ header{text-align:center;padding:34px 0 8px}
 .hero-img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin-top:16px;display:block}
 .logo{width:76px;height:76px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-size:36px;margin:auto}
 h1{font-size:clamp(26px,7vw,34px);line-height:1.2;margin:12px 0 6px}.sub{color:var(--muted);margin:0;font-size:17px}
-.badge{display:inline-block;margin-top:14px;background:var(--accent);color:#fff;padding:6px 16px;border-radius:99px;font-weight:700;font-size:14px}
+.badge{display:inline-block;margin-top:14px;background:var(--accent2,var(--accent));color:#fff;padding:6px 16px;border-radius:99px;font-weight:700;font-size:14px}
 .open{display:block;margin-top:10px;font-weight:700;font-size:14px}.open.y{color:#1f8a4c}.open.n{color:#b3412f}
 section h2{font-size:20px;margin:30px 0 10px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
@@ -33,18 +33,18 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:34px}
 
 /* תבנית "בולט": כותרת צבעונית רחבה, כרטיסים עם צל */
 .t-bold header{background:var(--accent);color:#fff;margin:0 -16px;padding:40px 16px 30px;border-radius:0 0 28px 28px}
-.t-bold header .sub{color:#ffffffd9}.t-bold .badge{background:#fff;color:var(--accent)}
+.t-bold header .sub{color:#ffffffd9}.t-bold .badge{background:#fff;color:var(--accent2,var(--accent))}
 .t-bold .logo{background:#ffffff33}.t-bold .open.y,.t-bold .open.n{color:#fff}
-.t-bold section h2{border-inline-start:5px solid var(--accent);padding-inline-start:10px}
+.t-bold section h2{border-inline-start:5px solid var(--accent2,var(--accent));padding-inline-start:10px}
 .t-bold .card{border:0;box-shadow:0 2px 12px #0000001a}
-.t-bold .price{background:var(--accent);color:#fff;padding:3px 10px;border-radius:99px}
+.t-bold .price{background:var(--accent2,var(--accent));color:#fff;padding:3px 10px;border-radius:99px}
 
 /* תבנית "נקי": בלי כרטיסים, קווים דקים, כותרות בסגנון ספר */
 .t-minimal h1,.t-minimal section h2{font-family:Georgia,"Times New Roman",serif;font-weight:600}
 .t-minimal section h2{font-size:15px;letter-spacing:.06em;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:4px}
 .t-minimal .card{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:12px 0;margin:0;box-shadow:none}
 .t-minimal .logo{width:56px;height:56px;font-size:26px;background:none;border:2px solid var(--accent)}
-.t-minimal .badge{background:none;color:var(--accent);border:1.5px solid var(--accent)}
+.t-minimal .badge{background:none;color:var(--accent2,var(--accent));border:1.5px solid var(--accent2,var(--accent))}
 
 /* מצב עריכה */
 [contenteditable]{outline:1.5px dashed color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px;border-radius:4px;min-width:2ch;display:inline-block;cursor:text}
