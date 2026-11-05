@@ -27,6 +27,9 @@ let sb = null, UID = null, EMAIL = '';
 // מכשיר מוכר: מיילים שכבר נכנסו מהדפדפן הזה (עם קוד). רק בהם מותרת כניסה עם סיסמה
 const trust = em => { em = (em || '').toLowerCase(); const k = LS.get('tiny-dev', []); if (em && !k.includes(em)) try { LS.set('tiny-dev', [...k, em]); } catch {} };
 // בחירת סיסמה (לא חובה) — לכניסה בלי קוד במכשיר מוכר
+const DEVTOK = () => { let t = LS.get('tiny-devtok', ''); if (!t) { t = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, ''); try { LS.set('tiny-devtok', t); } catch {} } return t; };
+// האם החיבור נפתח בסיסמה (amr בתוך ה-JWT)
+const viaPassword = s => { try { return JSON.parse(atob(s.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).amr.some(a => a.method === 'password'); } catch { return false; } };
 async function setPassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; }
 
 // מחזיר true כשמחוברים; אחרת מציג מסך כניסה ב-#app ומחזיר false
@@ -37,9 +40,22 @@ async function connect(admin = false) {
   if (!window.SUPABASE_URL) return true;
   await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; sc.onload = r; document.head.append(sc); });
   // storageKey נפרד: באותו דומיין רצה גם אפליקציית הסנדוויצים (אותו שרת) — בלי זה החיבור שלה נכנס גם לכאן
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' } });
+  // מזהה המכשיר נשלח בכל בקשה (x-tiny-device). השרת מאפשר חיבור שנפתח בסיסמה רק ממכשיר שנרשם אחרי כניסה בקוד (tiny.device_ok)
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' }, global: { headers: { 'x-tiny-device': DEVTOK() } } });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) { UID = session.user.id; EMAIL = session.user.email; trust(EMAIL); return true; }
+  let devMsg = '', devEm = '';
+  if (session) { const uid = session.user.id, ok = LS.get('tiny-devok', []);
+    if (!viaPassword(session)) {  // נכנסו בקוד ← רישום המכשיר בשרת (פעם אחת, ברקע)
+      trust(session.user.email);
+      if (!ok.includes(uid)) sb.rpc('trust_device', { p_token: DEVTOK() }).then(r => { if (r.data) try { LS.set('tiny-devok', [...ok, uid]); } catch {} }, () => {});
+    } else if (!ok.includes(uid)) {  // סיסמה במכשיר שעוד לא אושר כאן ← בודקים בשרת (רק פעם אחת)
+      const r = await sb.rpc('device_ok');
+      if (r.data === false) { await logout(); try { LS.set('tiny-dev', LS.get('tiny-dev', []).filter(e => e !== (session.user.email || '').toLowerCase())); } catch {}
+        devEm = session.user.email || ''; devMsg = 'במכשיר חדש נכנסים קודם עם קוד למייל. אחר כך אפשר להיכנס בו גם עם הסיסמה'; }
+      else if (r.data) try { LS.set('tiny-devok', [...ok, uid]); } catch {}
+    }
+    if (!devMsg) { UID = uid; EMAIL = session.user.email; return true; }
+  }
   // סיסמה (לא חובה) עובדת רק במכשיר שכבר נכנסו בו עם קוד. מכשיר חדש ← קודם קוד במייל
   const known = LS.get('tiny-dev', []);
   $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בניית הדף בחינם. כדי שהדף יופיע ללקוחות — 200 ₪ לשנה.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email" dir="ltr" autocomplete="email">
@@ -75,6 +91,7 @@ async function connect(admin = false) {
     const th = (v.match(/[?&]token=([^&\s]+)/) || [])[1];
     const { error } = th ? await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' }) : await sb.auth.verifyOtp({ email: $('em').value.trim(), token: v.replace(/\s/g, ''), type: 'email' });
     error ? bad('code', /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'הקוד לא נכון או שפג תוקפו — בדקו שוב או שלחו קוד חדש') : location.reload(); };
+  if (devMsg) { $('em').value = devEm; msg('❌ ' + devMsg); }
   return false;
 }
 
@@ -150,7 +167,7 @@ const DB = {
   async deleteAccount() {
     if (!sb) { ['biz', 'pages', 'leads', 'limit', 'renews', 'request', 'push'].forEach(k => localStorage.removeItem(k)); return; }
     const { data: { session } } = await sb.auth.getSession();
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/tiny-delete-account`, { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_KEY } });
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/tiny-delete-account`, { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_KEY, 'x-tiny-device': DEVTOK() } });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status);
     await sb.auth.signOut().catch(() => {}); localStorage.removeItem('tiny-auth'); return j;
   },
