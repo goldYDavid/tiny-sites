@@ -41,6 +41,9 @@ function update() {
   const a = document.getElementById('cta'); ORDER = { items: lines, rows, total: Math.round(sum * 100) / 100 };
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(`שלום, הגעתי מהאתר של ${SITE.name}`)}`; a.target = '_blank';
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${money(sum)} ₪` : (SITE.cta || 'וואטסאפ');
+  // לבעל העסק אין וואטסאפ: בלי מוצרים ← חיוג; עם מוצרים ← ההזמנה נשלחת ישר אליו (בלי המילה "וואטסאפ")
+  if (SITE.no_wa) { const c = (SITE.cta || '').replace(/\s*ב?וואטסאפ/g, '').trim(); a.removeAttribute('target');
+    if (lines.length) a.textContent = `${c || 'שליחת הזמנה'} · ${money(sum)} ₪`; else { a.href = `tel:+${SITE.phone}`; a.textContent = '📞 התקשרו אלינו'; } }
   if (demo && !lines.length) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? בונים בחינם ←'; }  // דף לדוגמה ← הרשמה
   if (pv) a.removeAttribute('href');
 }
@@ -59,6 +62,7 @@ document.addEventListener('submit', e => {
   if (website) return f.innerHTML = thanks;  // שדה נסתר שרק תוכנות ספאם ממלאות
   if (demo || pv) return f.innerHTML = thanks + '<p class="muted">זו דוגמה — בדף שלכם הפנייה תגיע אליכם לוואטסאפ ולמסך הניהול</p>';
   sendLead(slug, 'lead', { ...d, section }).catch(() => {});
+  if (SITE.no_wa) return f.innerHTML = '<p class="ok">✓ תודה! הפרטים הגיעו לבעל העסק, והוא יחזור אליכם בהקדם</p>';  // אין לו וואטסאפ — מקבל התראה ומייל
   const text = `שלום, השארתי פרטים באתר (${section}):\nשם: ${d.name}\nטלפון: ${d.phone}${d.message ? '\n' + d.message : ''}`;
   window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
@@ -71,9 +75,10 @@ document.getElementById('cta').addEventListener('click', e => { if (!ORDER.items
       <input name="name" placeholder="שם" aria-label="שם" autocomplete="name" required value="${esc(b.name || '')}" oninvalid="this.setCustomValidity('צריך למלא שם')" oninput="this.setCustomValidity('')">
       <input name="phone" type="tel" inputmode="tel" placeholder="טלפון" aria-label="טלפון" autocomplete="tel" required pattern="[0-9 +\\-]{9,15}" value="${esc(b.phone || '')}" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')">
       <input name="note" placeholder="הערה (לא חובה) — למשל כתובת למשלוח" aria-label="הערה (לא חובה)">
-      <button class="paybtn wa">שליחת ההזמנה בוואטסאפ</button>
+      ${SITE.no_wa ? '<button class="paybtn wa" data-nowa="1">שליחת ההזמנה לבעל העסק</button><small>ההזמנה מגיעה ישר לבעל העסק, והוא יחזור אליכם בטלפון</small></form>'
+      : `<button class="paybtn wa">שליחת ההזמנה בוואטסאפ</button>
       <small>ייפתח וואטסאפ עם ההזמנה מוכנה — שם לוחצים "שליחה"</small>
-      <button class="nowa" data-nowa="1">אין לי וואטסאפ — שליחה ישירה לבעל העסק</button></form>`);
+      <button class="nowa" data-nowa="1">אין לי וואטסאפ — שליחה ישירה לבעל העסק</button></form>`}`);
 });
 function sendOrder(e) { e.preventDefault();
   const b = Object.fromEntries(new FormData(e.target)); b.name = b.name.trim(); b.phone = b.phone.trim(); b.note = (b.note || '').trim();
@@ -85,7 +90,7 @@ function sendOrder(e) { e.preventDefault();
   // בלי וואטסאפ: ההזמנה נשמרת אצל בעל העסק (+ התראה בטלפון ובמייל), והוא חוזר ללקוח בטלפון. מחכים לאישור מהשרת
   if (nowa) { const btn = e.submitter; btn.disabled = true; btn.textContent = 'שולח…';
     return sendLead(slug, 'order', data).then(() => payNow(ORDER.total, `<div class="step">✓ <b>ההזמנה נשלחה לבעל העסק.</b> הוא יחזור אליכם לטלפון <b dir="ltr">${esc(b.phone)}</b>.</div>`),
-      () => { btn.disabled = false; btn.textContent = 'אין לי וואטסאפ — שליחה ישירה לבעל העסק'; alert('לא הצלחנו לשלוח את ההזמנה. בדקו את החיבור לאינטרנט ונסו שוב, או התקשרו לבעל העסק: 0' + String(SITE.phone).replace(/^972/, '')); }); }
+      () => { btn.disabled = false; btn.textContent = SITE.no_wa ? 'שליחת ההזמנה לבעל העסק' : 'אין לי וואטסאפ — שליחה ישירה לבעל העסק'; alert('לא הצלחנו לשלוח את ההזמנה. בדקו את החיבור לאינטרנט ונסו שוב, או התקשרו לבעל העסק: 0' + String(SITE.phone).replace(/^972/, '')); }); }
   sendLead(slug, 'order', data).catch(() => {});
   window.open(url, '_blank', 'noopener');
   payNow(ORDER.total, `<div class="step">📲 בוואטסאפ שנפתח לוחצים <b>"שליחה"</b> — כך בעל העסק יקבל את ההזמנה מיד.<br><a href="${url}" target="_blank" rel="noopener">וואטסאפ לא נפתח? לחצו כאן</a></div>`);

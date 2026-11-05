@@ -67,7 +67,7 @@ window.renderSite = (site, ed = false, cart = {}) => {
     ${site.sections.map(sec).join('')}
     <section class="contact"><h2>יצירת קשר</h2><div class="card">
       ${site.phone ? `<p>טלפון: <b dir="ltr">0${esc(String(site.phone).replace(/^972/, ''))}</b></p>` : ''}${site.address ? `<p>כתובת: ${esc(site.address)}</p>` : ''}
-      <div class="cbtns">${site.phone ? `<a href="tel:+${esc(site.phone)}">📞 חיוג</a><a href="https://wa.me/${esc(site.phone)}" target="_blank" rel="noopener">💬 וואטסאפ</a>` : ''}${site.address ? `<a href="https://waze.com/ul?q=${encodeURIComponent(site.address)}&navigate=yes" target="_blank" rel="noopener">🧭 ניווט</a>` : ''}</div>
+      <div class="cbtns">${site.phone ? `<a href="tel:+${esc(site.phone)}">📞 חיוג</a>${site.no_wa ? `<a class="sms" href="sms:+${esc(site.phone)}">✉️ הודעה (SMS)</a>` : `<a href="https://wa.me/${esc(site.phone)}" target="_blank" rel="noopener">💬 וואטסאפ</a>`}` : ''}${site.address ? `<a href="https://waze.com/ul?q=${encodeURIComponent(site.address)}&navigate=yes" target="_blank" rel="noopener">🧭 ניווט</a>` : ''}</div>
     </div></section>
     ${ed ? `<section><h2>הכפתור הירוק למטה</h2><div class="card">${T(ed, 'cta', site.cta, 'טקסט הכפתור (למשל "הזמנה בוואטסאפ")')}</div></section>` : `<footer>© ${esc(site.name)} · <a href="legal.html#access">הצהרת נגישות</a> · <a href="legal.html#privacy">פרטיות</a> · <a href="legal.html#terms">תנאי שימוש</a></footer>`}`;
 };

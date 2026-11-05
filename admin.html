@@ -34,6 +34,7 @@ button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);col
 .needs{background:#fff4e5;color:#7a3e00;border-radius:10px;padding:10px;margin-top:10px;font-size:14px}.total{margin:12px 0 0;font-size:17px}
 .types button{padding:12px;text-align:center}.types button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 #msg{text-align:center;font-weight:700;min-height:22px}
+label.check{display:flex;align-items:flex-start;gap:8px;font-size:14px;color:var(--ink);margin-top:8px}label.check input{width:20px;height:20px;flex:none;margin-top:2px}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-left:52px}.topbar h1{margin:8px 0 12px}
 .linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;padding:10px 4px;font-size:14px}.linkbtn.danger{color:#c0392b}
 details.card>summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px;padding-inline-end:28px;position:relative;min-height:28px}
@@ -102,13 +103,15 @@ function payCard() {
     <div class="tools"><button class="primary" id="savePay">שמירת אפשרויות התשלום</button></div>`;
 }
 
+// טלפון: נייד (05…). בלי וואטסאפ מותר גם קווי (02…, 077…)
+const phoneOk = ph => /^(05\d{8}|9725\d{8})$/.test(ph) || $('b_nowa') && $('b_nowa').checked && /^(0[2-9]\d{7,8}|972[2-9]\d{7,8})$/.test(ph);
 // משתמש בלי דף: פתיחה בשלושה צעדים — פרטי העסק ← סוג ← כתובת ← ישר לעורך. פרסום ותשלום רק אחרי שיש דף
 function onboarding() {
   const s = BIZ.settings;
   $('app').innerHTML = `${topbar('ברוכים הבאים! 👋')}<p class="muted" style="margin-top:-8px">בונים את הדף בשלושה צעדים קצרים. הבנייה בחינם. כשהדף מוכן ורוצים שהלקוחות יראו אותו — 200 ₪ לשנה.</p><div id="msg"></div>
   <div class="card"><h2><span class="num">1</span> פרטי העסק</h2>
     <label>שם העסק</label><input id="b_name" value="${esc(s.name)}" placeholder="למשל: המטבח של רחל">
-    <label>וואטסאפ — לכאן יגיעו ההזמנות</label><input id="b_phone" inputmode="tel" dir="ltr" placeholder="למשל 0501234567" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
+    <label>טלפון עם וואטסאפ — לכאן יגיעו ההזמנות</label><input id="b_phone" inputmode="tel" dir="ltr" placeholder="למשל 0501234567" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"><label class="check"><input type="checkbox" id="b_nowa"${s.no_wa ? ' checked' : ''}> אין לי וואטסאפ — ההזמנות והפניות יגיעו אליי בהתראה ובמייל, והלקוחות יוכלו להתקשר או לשלוח SMS</label></div>
   <div class="card"><h2><span class="num">2</span> סוג העסק</h2><small class="muted">הדף מתחיל עם תוכן לדוגמה שמתאים לסוג, ואתם מחליפים בפרטים שלכם</small>
     <div class="types" style="margin-top:10px">${typeBtns()}</div></div>
   <div class="card"><h2><span class="num">3</span> כתובת הדף</h2><small class="muted">הקישור שתשלחו ללקוחות. באנגלית — הצענו לפי שם העסק, ואפשר לשנות</small>
@@ -155,7 +158,7 @@ function draw() {
   <details class="card" id="setdet"><summary><h2>הגדרות העסק</h2><small class="muted">שם, לוגו, וואטסאפ, כתובת וצבעים</small></summary>
     <div class="grid2"><div><label>שם העסק</label><input id="b_name" value="${esc(s.name)}"></div>
       <div><label>לוגו — תמונה (PNG, JPG או SVG), או אימוג'י</label><div class="logo-pick" id="logoPick">${logoPick(s)}</div></div>
-      <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" dir="ltr" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
+      <div><label>טלפון עם וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" dir="ltr" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"><label class="check"><input type="checkbox" id="b_nowa"${s.no_wa ? ' checked' : ''}> אין לי וואטסאפ — ההזמנות והפניות יגיעו אליי בהתראה ובמייל, והלקוחות יוכלו להתקשר או לשלוח SMS</label></div>
       <div><label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}"></div></div>
     <div class="pvwrap"><small class="muted">כך ייראה הדף שלכם — מתעדכן מיד. נשמר רק אחרי "שמירת ההגדרות"</small>
       <iframe id="pvf" title="תצוגה מקדימה של הדף" data-src="${href('index.html', 's=' + encodeURIComponent(PAGES[0].slug) + '&pv')}"></iframe></div>
@@ -261,17 +264,17 @@ document.addEventListener('click', async e => {
   if (b.id === 'saveBiz') {
     const ph = $('b_phone').value.replace(/\D/g, '');
     if (!$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
-    if (!ph) return bad('b_phone', 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
-    if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05');
+    if (!ph) return bad('b_phone', 'צריך למלא מספר טלפון — אליו מגיעות ההזמנות');
+    if (!phoneOk(ph)) return bad('b_phone', 'מספר הטלפון לא תקין — 10 ספרות שמתחילות ב־05' + ($('b_nowa').checked ? ' (או טלפון קווי)' : ''));
     const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo') ? $('b_logo').value.trim() : BIZ.settings.logo || '', accent: $('b_accent').value, harmony: $('b_harmony').value,
-      phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
+      phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim(), no_wa: $('b_nowa').checked };
     try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }
   if (b.id === 'logout') { await logout(); return location.reload(); }
   if (b.id === 'create') {
     const first = !PAGES.length, ph = first ? $('b_phone').value.replace(/\D/g, '') : '';
     if (first && !$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
-    if (first && !/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', ph ? 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05' : 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
+    if (first && !phoneOk(ph)) return bad('b_phone', ph ? 'מספר הטלפון לא תקין — 10 ספרות שמתחילות ב־05' : 'צריך למלא מספר טלפון — אליו מגיעות ההזמנות');
     const slug = $('slug').value.trim().toLowerCase();
     if (!slug) return bad('slug', 'צריך למלא כתובת לדף, למשל my-shop');
     if (/[^a-z0-9-]/.test(slug)) return bad('slug', 'בכתובת מותר רק אותיות באנגלית, מספרים ומקף (בלי רווחים ועברית)');
@@ -280,7 +283,7 @@ document.addEventListener('click', async e => {
     content.type = TYPE; content.template = 'classic';
     try {
       // פתיחה: שם + וואטסאפ נשמרים קודם (גם אם הכתובת תפוסה). עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
-      const ns = { ...BIZ.settings, ...(first && { name: $('b_name').value.trim(), phone: ph.replace(/^0/, '972') }), ...(!BIZ.settings.logo && !BIZ.settings.logo_img && { logo, accent }) };
+      const ns = { ...BIZ.settings, ...(first && { name: $('b_name').value.trim(), phone: ph.replace(/^0/, '972'), no_wa: $('b_nowa').checked }), ...(!BIZ.settings.logo && !BIZ.settings.logo_img && { logo, accent }) };
       if (JSON.stringify(ns) !== JSON.stringify(BIZ.settings)) { await DB.saveBiz(ns); BIZ.settings = ns; }
       b.disabled = true; await DB.addPage(slug, content);
       location.href = href('edit.html', 's=' + slug);

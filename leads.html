@@ -66,7 +66,7 @@ const cnt = k => LEADS.filter(l => l.status === k).length, list = LEADS.filter(l
     <div class="meta"><span class="tag">${l.kind === 'order' ? '🛒 הזמנה' : '✉️ פנייה'}${l.status !== 'new' ? ' · ' + (ST[l.status] || ST.new)[0] : ''}</span><span dir="ltr">${esc(l.slug)} · ${when(l.created_at)}</span></div>
     ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p>${d.name ? `<p>👤 <b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.note ? `<p>📝 ${esc(d.note)}</p>` : ''}${d.nowa ? '<p class="nowa-tag">📞 ללקוח אין וואטסאפ — חוזרים אליו בטלפון</p>' : ''}` : '<p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>'}`
       : `<p><b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.message ? `<p>${esc(d.message)}</p>` : ''}${d.section ? `<p class="muted">מתוך: ${esc(d.section)}</p>` : ''}`}
-    <div class="tools">${d.phone ? `<a class="btn primary" target="_blank" href="https://wa.me/${wa(d.phone)}">וואטסאפ ללקוח</a>` : ''}
+    <div class="tools">${d.phone ? `<a class="btn primary" target="_blank" href="https://wa.me/${wa(d.phone)}">וואטסאפ ללקוח</a><a class="btn" href="tel:${esc(d.phone)}">📞 חיוג</a>` : ''}
       <select data-st="${l.id}" aria-label="מצב">${Object.entries(ST).map(([k, [one]]) => `<option value="${k}"${k === l.status ? ' selected' : ''}>מצב: ${one}</option>`).join('')}</select><button data-del="${l.id}">מחיקה</button></div></div>`; }).join('')
     : `<p class="muted">${SHOW === 'all' ? 'אין כאן כלום עדיין' : 'אין פניות במצב "' + ST[SHOW][0] + '"'}</p>`}`;
 }
