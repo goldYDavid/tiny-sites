@@ -1,5 +1,9 @@
 <!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>מעביר…</title>
-<script>// קישור שיתוף p/<slug>.html שעוד לא נוצר (scripts/share-pages.mjs) ← הדף הרגיל
-const m = location.pathname.match(/\/p\/([a-z0-9-]+)\.html$/); location.replace(m ? location.pathname.replace(/p\/[^/]+$/, '?s=' + m[1]) : location.pathname.replace(/[^/]*$/, ''));</script>
+<script>// כתובת שלא קיימת:
+// p/<slug>.html שעוד לא נוצר (share-pages) ← הדף הרגיל
+// dafbiz.com/<slug> (כתובת קצרה, למשל כשמקלידים ידנית) ← דף העסק
+// כל השאר ← דף הבית
+const p = location.pathname, m = p.match(/\/p\/([a-z0-9-]+)(\.html)?$/i) || p.match(/^\/([A-Za-z0-9-]{3,40})\/?$/);
+location.replace(m ? '/?s=' + m[1].toLowerCase() : '/home');</script>
 </head><body></body></html>

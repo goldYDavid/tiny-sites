@@ -17,7 +17,7 @@
 <script src="presets.js"></script>
 <script>
 // הצגה: קודם מהמטמון (מיידי), ואז עדכון מהשרת ברקע
-const qs = new URLSearchParams(location.search), slug = qs.get('s') || window.PAGE_SLUG || window.SITE_SLUG,  // PAGE_SLUG: עותק קבוע של הדף ב-p/ (תצוגה מקדימה בוואטסאפ)
+const qs = new URLSearchParams(location.search), slug = (qs.get('s') || window.PAGE_SLUG || window.SITE_SLUG).trim().toLowerCase().replace(/[^a-z0-9-]+$/, ''),  // קישור מוואטסאפ מגיע לפעמים עם נקודה/סוגריים בסוף או אותיות גדולות  // PAGE_SLUG: עותק קבוע של הדף ב-p/ (תצוגה מקדימה בוואטסאפ)
       demo = qs.get('demo');
 let SITE, cart = {}, ORDER = { items: [] };
 function render(site) {
@@ -82,7 +82,9 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
     const M = { draft: [`הדף של ${n} עוד לא פורסם`, 'הדף ייפתח לציבור אחרי שבעל העסק יבחר חבילה וישלים את התשלום.', own],
       paused: [`הדף של ${n} מושהה`, 'המנוי השנתי של הדף לא חודש, ולכן הוא לא מוצג כרגע. הדף ייפתח שוב מיד אחרי החידוש.', own],
       live: ['הדף לא זמין כרגע', 'נסו לרענן בעוד כמה דקות.', ''],
-      none: ['לא מצאנו דף בכתובת הזו', 'כדאי לבדוק שהקישור הועתק במלואו.', '<p class="own"><a href="admin.html">רוצים דף כזה לעסק שלכם? מתחילים בחינם</a></p>'] }[state] || [];
+      // מי שמגיע לכאן הוא בדרך כלל לקוח של עסק שקיבל קישור שגוי — קודם עוזרים לו להגיע לעסק, ורק בסוף הצעה למי שיש לו עסק
+      none: ['לא מצאנו דף בכתובת הזו', `חיפשנו את הכתובת <b dir="ltr">${esc(slug)}</b> ולא מצאנו עסק כזה. ייתכן שהקישור לא הועתק במלואו או שיש בו טעות הקלדה.`,
+        '<p>הכי פשוט: לבקש מבעל העסק לשלוח שוב את הקישור לדף שלו.</p><p class="own"><a class="lead-btn" style="background:#2563eb;text-decoration:none;color:#fff" href="home">לדף הבית של dafbiz</a></p><p class="own muted">יש לכם עסק? <a href="home">כך בונים דף משלכם, בחינם</a></p>'] }[state] || [];
     document.title = M[0]; document.getElementById('app').innerHTML = `<div class="paused"><h2>${M[0]}</h2><p>${M[1]}</p>${M[2]}</div>`; }
 })();
 </script>
