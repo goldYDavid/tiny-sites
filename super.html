@@ -72,7 +72,7 @@ function draw() {
       ${s.phone ? `<a class="btn wa" target="_blank" href="${wa(s.phone, `שלום ${s.name || ''}, המנוי לדף שלך מתחדש ב־${fmt(c.renews_at)}. החידוש לשנה: ${PLANS[c.page_limit] || ''} ₪. איך נוח לך לשלם?`)}">תזכורת חידוש</a>` : ''}`}</div><div class="tools"><button data-act="test" data-o="${c.owner}" data-t="${c.test ? '' : '1'}">${c.test ? 'ביטול סימון בדיקה' : 'סימון כחשבון בדיקה'}</button></div></div>`; }).join('') || '<p class="muted">אין לקוחות</p>'}`;
 }
 async function load() { const { data, error } = await sb.rpc('admin_customers'); if (error) throw error; LIST = data; draw(); }
-const err = e => /slug taken|duplicate|unique/i.test(e.message) ? 'הכתובת הזו כבר תפוסה' : /customer exists/.test(e.message) ? 'למייל הזה כבר יש עסק — מוסיפים לו דף מהרשימה' : /limit/.test(e.message) ? 'הלקוח הגיע למכסת הדפים בחבילה' : 'שגיאה: ' + e.message;
+const err = e => /slug taken|duplicate|unique/i.test(e.message) ? 'הכתובת הזו כבר תפוסה' : /customer exists/.test(e.message) ? 'למייל הזה כבר יש עסק — מוסיפים לו דף מהרשימה' : /limit/.test(e.message) ? 'הלקוח הגיע למכסת הדפים בחבילה' : human(e);
 
 document.addEventListener('input', e => { if (e.target.id === 'q') { Q = e.target.value; const pos = e.target.selectionStart; draw(); $('q').focus(); $('q').setSelectionRange(pos, pos); } });
 document.addEventListener('change', async e => { const o = e.target.dataset.limit; if (!o) return;

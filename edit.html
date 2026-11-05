@@ -61,7 +61,7 @@ document.addEventListener('input', e => { const el = e.target.closest('[data-p]'
 document.addEventListener('keydown', e => { const el = e.target.closest('[data-p]'); if (el && e.key === 'Enter' && !el.classList.contains('ed-body')) { e.preventDefault(); el.blur(); } });
 document.addEventListener('change', async e => {
   const p = e.target.dataset.img; if (!p || !e.target.files[0]) return;
-  msg('מעלה תמונה…'); try { setPath(C, p, await DB.upload(slug, await shrink(e.target.files[0]))); changed(); draw(); msg('התמונה הועלתה ✓ — לחצו "שמירה"'); } catch (err) { msg('❌ שגיאה בהעלאה: ' + err.message); }
+  msg('מעלה תמונה…'); try { setPath(C, p, await DB.upload(slug, await shrink(e.target.files[0]))); changed(); draw(); msg('התמונה הועלתה ✓ — לחצו "שמירה"'); } catch (err) { msg('❌ שגיאה בהעלאה: ' + human(err)); }
 });
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -81,7 +81,7 @@ document.addEventListener('click', async e => {
   changed(); draw();
 });
 $('save').onclick = async () => {
-  try { await DB.savePage(slug, C); dirty = false; $('save').textContent = 'שמירה'; msg('נשמר ✓ הדף מעודכן'); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
+  try { await DB.savePage(slug, C); dirty = false; $('save').textContent = 'שמירה'; msg('נשמר ✓ הדף מעודכן'); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
 };
 addEventListener('beforeunload', e => { if (dirty) e.preventDefault(); });
 

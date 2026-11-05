@@ -8,6 +8,19 @@ const msg = t => { let m = $('toast');
   clearTimeout(m.t); m.t = setTimeout(() => m.style.opacity = 0, /^(❌|⚠️)/.test(t) ? 6000 : 3000); };
 // שדה שלא מולא נכון: מסגרת אדומה, מעבר לשדה והסבר מה לתקן
 const bad = (id, t) => { const el = $(id); if (el) { el.style.borderColor = '#b42318'; el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.addEventListener('input', () => el.style.borderColor = '', { once: true }); } msg('⚠️ ' + t); return false; };
+// שגיאה מהשרת ← הסבר בעברית פשוטה (בלי טקסט טכני באנגלית). לא מוכר ← הודעה כללית + וואטסאפ
+const human = err => { const m = String(err?.message || err || '');
+  if (/fetch|network|load failed|offline/i.test(m)) return 'אין חיבור לאינטרנט — בדקו את החיבור ונסו שוב';
+  if (/jwt|expired|session|not authenticated|401/i.test(m)) return 'החיבור פג — רעננו את הדף והיכנסו שוב';
+  if (/row-level|permission|denied|forbidden|403/i.test(m)) return 'אין לכם הרשאה לפעולה הזו';
+  if (/duplicate|unique|already exists/i.test(m)) return 'זה כבר קיים — נסו שם או כתובת אחרים';
+  if (/too large|payload|size|exceed/i.test(m)) return 'הקובץ גדול מדי — נסו תמונה קטנה יותר';
+  if (/mime|type.*not supported|invalid.*format/i.test(m)) return 'סוג הקובץ לא נתמך — העלו תמונה (JPG, PNG או WEBP)';
+  if (/rate|too many/i.test(m)) return 'יותר מדי ניסיונות ברצף — חכו כמה דקות ונסו שוב';
+  if (/timeout|timed out|504|503|502/i.test(m)) return 'השרת לא ענה בזמן — נסו שוב בעוד רגע';
+  if (/[֐-׿]/.test(m)) return m;  // הודעה שכבר כתובה בעברית (מהקוד שלנו)
+  console.error(err); return 'משהו השתבש — נסו שוב. אם זה חוזר, כתבו לנו בוואטסאפ';
+};
 const isMail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
 let sb = null, UID = null, EMAIL = '';
@@ -53,7 +66,7 @@ async function connect(admin = false) {
     if (sec) $('step2').hidden = false;  // הקוד הקודם עדיין בדרך — משאירים את שדה הקוד
     // גיבוי: אם המייל לא נשלח או לא מגיע, בעל העסק לא נתקע — פונה אלינו בוואטסאפ
     if (!admin && !sec && window.SALES_PHONE && !$('mailhelp')) $('send').insertAdjacentHTML('afterend', `<p id="mailhelp" class="muted">${error ? 'משהו השתבש בשליחת הקוד.' : 'הקוד לא הגיע תוך דקה?'} <a target="_blank" href="https://wa.me/${SALES_PHONE}?text=${encodeURIComponent('שלום, אני מנסה להירשם לבניית דף עם המייל ' + $('em').value.trim() + ' והקוד לא מגיע')}">כתבו לנו בוואטסאפ</a> ונעזור לכם מיד.</p>`);
-    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'יש עומס בשליחת קודים — נסו שוב בעוד כמה דקות, או כתבו לנו בוואטסאפ' : /signup/i.test(error.message) ? 'המייל הזה לא מוגדר כמנהל' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + error.message))
+    error ? msg('❌ ' + (sec ? `כבר נשלח קוד — אפשר לבקש קוד חדש בעוד ${sec} שניות. בדקו את המייל (גם בספאם)` : /rate/i.test(error.message) ? 'יש עומס בשליחת קודים — נסו שוב בעוד כמה דקות, או כתבו לנו בוואטסאפ' : /signup/i.test(error.message) ? 'המייל הזה לא מוגדר כמנהל' : /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'שגיאה: ' + human(error)))
           : ($('step2').hidden = false, $('code').focus(), msg('✓ נשלח קוד למייל — בדקו גם בספאם')); };
   // כניסה עם הקוד מהמייל (נשאר גם קישור מודבק, למי שהדביק קישור)
   $('ok').onclick = async () => { const v = $('code').value.trim(); if (!v) return bad('code', 'צריך להקליד את הקוד מהמייל');

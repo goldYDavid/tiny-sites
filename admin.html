@@ -145,21 +145,21 @@ document.addEventListener('change', async e => {
   if (f.size > 8e6) return msg('⚠️ הקובץ גדול מדי — עד 8MB');
   msg('מעלה את הלוגו…');
   try { const url = await DB.uploadLogo(await shrink(f, 512)); BIZ.settings = { ...BIZ.settings, logo_img: url }; await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('הלוגו הועלה ✓'); }
-  catch (err) { msg('❌ ההעלאה נכשלה: ' + err.message); }
+  catch (err) { msg('❌ ההעלאה נכשלה: ' + human(err)); }
 });
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.copy) { const u = shareUrl(b.dataset.copy); navigator.clipboard.writeText(u).then(() => msg('הקישור הועתק ✓ אפשר להדביק בוואטסאפ'), () => prompt('הקישור לשיתוף:', u)); }
   if (b.dataset.plan) { REQ_PLAN = +b.dataset.plan; $('plan').outerHTML = publishCard(); }  // רק הכרטיס — בלי לאבד שדות שעוד לא נשמרו
   if (b.dataset.fill !== undefined) { REQ_FILL = b.dataset.fill; $('plan').outerHTML = publishCard(); }
-  if (b.dataset.act === 'rmlogo') { BIZ.settings = { ...BIZ.settings, logo_img: '' }; try { await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('התמונה הוסרה'); } catch (err) { msg('❌ ' + err.message); } }
+  if (b.dataset.act === 'rmlogo') { BIZ.settings = { ...BIZ.settings, logo_img: '' }; try { await DB.saveBiz(BIZ.settings); $('logoPick').innerHTML = logoPick(BIZ.settings); msg('התמונה הוסרה'); } catch (err) { msg('❌ ' + human(err)); } }
   if (b.id === 'publish') {
     if (!BIZ.settings.name || !BIZ.settings.phone) return bad(BIZ.settings.name ? 'b_phone' : 'b_name', 'קודם ממלאים ושומרים את הגדרות העסק');
     const req = { plan: REQ_PLAN, fill: REQ_FILL || null, at: new Date().toISOString() }, F = FILLS[REQ_FILL];
     const text = `שלום, אשמח לפרסם את הדף שלי.\nעסק: ${BIZ.settings.name}\nמייל: ${EMAIL}\nחבילה: ${REQ_PLAN === 1 ? 'דף אחד' : REQ_PLAN + ' דפים'} · ${PLANS[REQ_PLAN]} ₪ לשנה`
       + (F ? `\nבנוסף: ${fillLabel(REQ_FILL)}\nסה"כ: ${PLANS[REQ_PLAN] + F.price} ₪\nאת החומרים (${FILL_NEEDS}) אשלח כאן` : '') + (PAGES.length ? '\nהדף: ' + PAGES.map(p => p.slug).join(', ') : '');
     window.open(`https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
-    try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + err.message); }
+    try { await DB.saveRequest(req); BIZ.request = req; draw(); msg('✓ הבקשה נשלחה — נחזור אליכם בהקדם'); } catch (err) { msg('❌ ' + human(err)); }
   }
   if (b.dataset.pay) { PAY = b.dataset.pay; $('pay').innerHTML = payCard(); }  // רק הכרטיס — בלי לאבד שדות אחרים שעוד לא נשמרו
   if (b.id === 'savePay') {
@@ -171,7 +171,7 @@ document.addEventListener('click', async e => {
       if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('p_phone', 'מספר הטלפון לא תקין — 10 ספרות שמתחילות ב־05');
       pay.phone = ph.replace(/^0/, '972'); }
     const s = { ...BIZ.settings, pay };
-    try { await DB.saveBiz(s); BIZ.settings = s; PAY = null; msg('✓ נשמר — ' + (method === 'none' ? 'הלקוחות ישלחו הזמנה בוואטסאפ בלבד' : 'אחרי הזמנה הלקוחות יראו כפתור תשלום' + (method === 'link' ? '' : ' ב' + PAY_WAYS[method]))); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
+    try { await DB.saveBiz(s); BIZ.settings = s; PAY = null; msg('✓ נשמר — ' + (method === 'none' ? 'הלקוחות ישלחו הזמנה בוואטסאפ בלבד' : 'אחרי הזמנה הלקוחות יראו כפתור תשלום' + (method === 'link' ? '' : ' ב' + PAY_WAYS[method]))); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }
   if (b.dataset.type) { TYPE = b.dataset.type; document.querySelectorAll('[data-type]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
   if (b.id === 'saveBiz') {
@@ -181,7 +181,7 @@ document.addEventListener('click', async e => {
     if (!/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05');
     const s = { ...BIZ.settings, name: $('b_name').value.trim(), logo: $('b_logo') ? $('b_logo').value.trim() : BIZ.settings.logo || '', accent: $('b_accent').value,
       phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
-    try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + err.message); }
+    try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }
   if (b.id === 'create') {
     const slug = $('slug').value.trim().toLowerCase();
@@ -195,23 +195,23 @@ document.addEventListener('click', async e => {
       // עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
       if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
       location.href = href('edit.html', 's=' + slug);
-    } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message)); }
+    } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + human(err))); }
   }
   if (b.id === 'savePw') {
     const pw = $('newpw').value;
     if (pw.length < 8) return bad('newpw', 'הסיסמה צריכה להיות לפחות 8 תווים');
     b.disabled = true;
     try { await setPassword(pw); $('newpw').value = ''; msg('✓ הסיסמה נשמרה. במכשיר הזה אפשר להיכנס איתה בלי קוד'); }
-    catch (err) { msg('❌ ' + (/reauth|recent/i.test(err.message) ? 'מטעמי אבטחה צריך להיכנס שוב עם קוד, ואז לשמור את הסיסמה' : /same|different/i.test(err.message) ? 'זו כבר הסיסמה שלך' : /weak|short|characters/i.test(err.message) ? 'הסיסמה חלשה מדי — נסו סיסמה ארוכה יותר' : 'שגיאה: ' + err.message)); }
+    catch (err) { msg('❌ ' + (/reauth|recent/i.test(err.message) ? 'מטעמי אבטחה צריך להיכנס שוב עם קוד, ואז לשמור את הסיסמה' : /same|different/i.test(err.message) ? 'זו כבר הסיסמה שלך' : /weak|short|characters/i.test(err.message) ? 'הסיסמה חלשה מדי — נסו סיסמה ארוכה יותר' : 'שגיאה: ' + human(err))); }
     b.disabled = false;
   }
   if (b.id === 'delAccount' && confirm('למחוק את החשבון לצמיתות?\nיימחקו העסק, כל הדפים (הם יירדו מהאוויר), הפניות, ההזמנות והתמונות. אי אפשר לשחזר.')) {
     b.disabled = true; msg('מוחק את החשבון…');
     try { await DB.deleteAccount(); $('app').innerHTML = '<h1>החשבון נמחק</h1><div class="card"><p>כל הנתונים שלך נמחקו. תודה שהייתם איתנו.</p></div>'; }
-    catch (err) { b.disabled = false; msg('❌ המחיקה נכשלה: ' + err.message); }
+    catch (err) { b.disabled = false; msg('❌ המחיקה נכשלה: ' + human(err)); }
   }
   if (b.dataset.del && confirm('למחוק את הדף לצמיתות?')) {
-    try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('❌ שגיאה: ' + err.message); }
+    try { await DB.delPage(b.dataset.del); PAGES = PAGES.filter(p => p.slug !== b.dataset.del); draw(); msg('הדף נמחק'); } catch (err) { msg('❌ שגיאה: ' + human(err)); }
   }
 });
 

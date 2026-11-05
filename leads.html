@@ -70,16 +70,16 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.show) { SHOW = b.dataset.show; return draw(); }
   if (b.dataset.push) { try { b.dataset.push === 'on' ? await pushOn() : await pushOff(); PUSH = b.dataset.push === 'on'; draw(); msg(PUSH ? '✓ ההתראות הופעלו — תקבלו התראה על כל הזמנה חדשה' : 'ההתראות בטלפון כובו'); }
-    catch (err) { msg(err.message === 'denied' ? '⚠️ לא אושרו התראות — אפשר לאשר בהגדרות הדפדפן' : '❌ לא הצלחנו להפעיל התראות: ' + err.message); } return; }
+    catch (err) { msg(err.message === 'denied' ? '⚠️ לא אושרו התראות — אפשר לאשר בהגדרות הדפדפן' : '❌ לא הצלחנו להפעיל התראות: ' + human(err)); } return; }
   try {
     if (b.dataset.del && confirm('למחוק את הפנייה?')) { await DB.delLead(+b.dataset.del); LEADS = LEADS.filter(x => x.id != b.dataset.del); draw(); msg('נמחק'); }
-  } catch (err) { msg('❌ שגיאה: ' + err.message); }
+  } catch (err) { msg('❌ שגיאה: ' + human(err)); }
 });
 document.addEventListener('change', async e => { if (e.target.id === 'mailOn') { const s = { ...BIZ.settings, notify_email: e.target.checked };
-    try { await DB.saveBiz(s); BIZ.settings = s; msg(s.notify_email ? '✓ תקבלו מייל על כל הזמנה חדשה' : 'המיילים על הזמנות כובו'); } catch (err) { e.target.checked = !e.target.checked; msg('❌ ' + err.message); } return; }
+    try { await DB.saveBiz(s); BIZ.settings = s; msg(s.notify_email ? '✓ תקבלו מייל על כל הזמנה חדשה' : 'המיילים על הזמנות כובו'); } catch (err) { e.target.checked = !e.target.checked; msg('❌ ' + human(err)); } return; }
   const el = e.target.closest('select[data-st]'); if (!el) return;
   const l = LEADS.find(x => x.id == el.dataset.st), was = l.status;
-  try { l.status = el.value; await DB.setLead(l.id, l.status); draw(); msg('✓ המצב עודכן: ' + ST[l.status][0]); } catch (err) { l.status = was; draw(); msg('❌ שגיאה: ' + err.message); }
+  try { l.status = el.value; await DB.setLead(l.id, l.status); draw(); msg('✓ המצב עודכן: ' + ST[l.status][0]); } catch (err) { l.status = was; draw(); msg('❌ שגיאה: ' + human(err)); }
 });
 (async () => { if (!(await connect())) return; [LEADS, BIZ, PUSH] = await Promise.all([DB.leads(), DB.biz(), pushIsOn().catch(() => false)]); draw(); })();
 </script>
