@@ -117,3 +117,4 @@ footer a{display:inline-block;padding:10px 2px}
 .paused a{color:#2563eb;font-weight:700}.paused a.lead-btn{color:#fff}
 /* עורך: סגנון התצוגה מקופל */
 .viewdet{margin:0 0 10px}.viewdet summary{cursor:pointer;font-size:14px;color:var(--muted);padding:8px 0;min-height:38px}.viewdet[open] summary{margin-bottom:6px}
+.nowa{font:inherit;font-size:14px;background:none;border:0;color:var(--muted);text-decoration:underline;padding:10px;cursor:pointer}

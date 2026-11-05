@@ -105,7 +105,7 @@ function payCard() {
 // משתמש בלי דף: פתיחה בשלושה צעדים — פרטי העסק ← סוג ← כתובת ← ישר לעורך. פרסום ותשלום רק אחרי שיש דף
 function onboarding() {
   const s = BIZ.settings;
-  $('app').innerHTML = `${topbar('ברוכים הבאים! 👋')}<p class="muted" style="margin-top:-8px">בונים את הדף בשלושה צעדים קצרים. בחינם — משלמים רק כשרוצים לפרסם.</p><div id="msg"></div>
+  $('app').innerHTML = `${topbar('ברוכים הבאים! 👋')}<p class="muted" style="margin-top:-8px">בונים את הדף בשלושה צעדים קצרים. הבנייה בחינם. כשהדף מוכן ורוצים שהלקוחות יראו אותו — 200 ₪ לשנה.</p><div id="msg"></div>
   <div class="card"><h2><span class="num">1</span> פרטי העסק</h2>
     <label>שם העסק</label><input id="b_name" value="${esc(s.name)}" placeholder="למשל: המטבח של רחל">
     <label>וואטסאפ — לכאן יגיעו ההזמנות</label><input id="b_phone" inputmode="tel" dir="ltr" placeholder="למשל 0501234567" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>

@@ -41,7 +41,7 @@ function update() {
   const a = document.getElementById('cta'); ORDER = { items: lines, rows, total: Math.round(sum * 100) / 100 };
   a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(`שלום, הגעתי מהאתר של ${SITE.name}`)}`; a.target = '_blank';
   a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${money(sum)} ₪` : (SITE.cta || 'וואטסאפ');
-  if (demo && !lines.length) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? מתחילים בחינם ←'; }  // דף לדוגמה ← הרשמה
+  if (demo && !lines.length) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? בונים בחינם ←'; }  // דף לדוגמה ← הרשמה
   if (pv) a.removeAttribute('href');
 }
 // הודעת ההזמנה שנשלחת לבעל העסק בוואטסאפ
@@ -72,20 +72,26 @@ document.getElementById('cta').addEventListener('click', e => { if (!ORDER.items
       <input name="phone" type="tel" inputmode="tel" placeholder="טלפון" aria-label="טלפון" autocomplete="tel" required pattern="[0-9 +\\-]{9,15}" value="${esc(b.phone || '')}" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')">
       <input name="note" placeholder="הערה (לא חובה) — למשל כתובת למשלוח" aria-label="הערה (לא חובה)">
       <button class="paybtn wa">שליחת ההזמנה בוואטסאפ</button>
-      <small>ייפתח וואטסאפ עם ההזמנה מוכנה — שם לוחצים "שליחה"</small></form>`);
+      <small>ייפתח וואטסאפ עם ההזמנה מוכנה — שם לוחצים "שליחה"</small>
+      <button class="nowa" data-nowa="1">אין לי וואטסאפ — שליחה ישירה לבעל העסק</button></form>`);
 });
 function sendOrder(e) { e.preventDefault();
   const b = Object.fromEntries(new FormData(e.target)); b.name = b.name.trim(); b.phone = b.phone.trim(); b.note = (b.note || '').trim();
   const text = orderText(b), url = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
   if (demo) return sheet('ordersheet', `<b>כך זה עובד בדף שלכם</b><p class="muted">ההודעה הזו נפתחת בוואטסאפ של הלקוח, והוא שולח אותה אליכם. ההזמנה נשמרת גם במסך הניהול, עם השם והטלפון:</p>
-    <pre class="wamsg">${esc(text)}</pre><a class="paybtn wa" href="admin.html">רוצים דף כזה? מתחילים בחינם ←</a>`);
+    <pre class="wamsg">${esc(text)}</pre><a class="paybtn wa" href="admin.html">רוצים דף כזה? בונים בחינם ←</a>`);
   try { localStorage.setItem('buyer', JSON.stringify({ name: b.name, phone: b.phone })); } catch {}
-  sendLead(slug, 'order', { items: ORDER.items, total: ORDER.total, name: b.name, phone: b.phone, ...(b.note && { note: b.note }) }).catch(() => {});
+  const nowa = e.submitter && e.submitter.dataset.nowa, data = { items: ORDER.items, total: ORDER.total, name: b.name, phone: b.phone, ...(b.note && { note: b.note }), ...(nowa && { nowa: true }) };
+  // בלי וואטסאפ: ההזמנה נשמרת אצל בעל העסק (+ התראה בטלפון ובמייל), והוא חוזר ללקוח בטלפון. מחכים לאישור מהשרת
+  if (nowa) { const btn = e.submitter; btn.disabled = true; btn.textContent = 'שולח…';
+    return sendLead(slug, 'order', data).then(() => payNow(ORDER.total, `<div class="step">✓ <b>ההזמנה נשלחה לבעל העסק.</b> הוא יחזור אליכם לטלפון <b dir="ltr">${esc(b.phone)}</b>.</div>`),
+      () => { btn.disabled = false; btn.textContent = 'אין לי וואטסאפ — שליחה ישירה לבעל העסק'; alert('לא הצלחנו לשלוח את ההזמנה. בדקו את החיבור לאינטרנט ונסו שוב, או התקשרו לבעל העסק: 0' + String(SITE.phone).replace(/^972/, '')); }); }
+  sendLead(slug, 'order', data).catch(() => {});
   window.open(url, '_blank', 'noopener');
-  payNow(ORDER.total, url);
+  payNow(ORDER.total, `<div class="step">📲 בוואטסאפ שנפתח לוחצים <b>"שליחה"</b> — כך בעל העסק יקבל את ההזמנה מיד.<br><a href="${url}" target="_blank" rel="noopener">וואטסאפ לא נפתח? לחצו כאן</a></div>`);
 }
 // אחרי הזמנה: תזכורת ללחוץ "שליחה" בוואטסאפ + כפתורי תשלום עם הסכום, לפי מה שבעל העסק בחר. הכסף עובר ישר אליו
-function payNow(total, url) {
+function payNow(total, head) {
   const W = payWays(SITE.pay), ks = Object.keys(PAY_WAYS).filter(k => W[k] && (k === 'bit' ? W[k].phone || W[k].link : k === 'bank' ? W[k].details : k === 'cash' || W[k].link));
   const one = ks.length === 1, links = ks.filter(k => W[k].link), T = money(total);
   const row = k => { const v = W[k], ph = v.phone ? '0' + String(v.phone).replace(/^972/, '') : '';
@@ -94,7 +100,7 @@ function payNow(total, url) {
     if (k === 'bank') return `<div class="payrow"><b>העברה בנקאית</b><p style="white-space:pre-line">${esc(v.details)}</p><button class="copy" data-copy="${esc(v.details)}">העתקת הפרטים</button></div>`;
     if (k === 'cash') return `<div class="payrow"><b>💵 מזומן</b><p>אפשר לשלם במזומן באיסוף או במסירה</p></div>`;
     return `<a class="paybtn" href="${esc(v.link)}" target="_blank" rel="noopener">${k === 'link' ? (one ? 'לתשלום' : 'תשלום בכרטיס אשראי') : 'תשלום ב' + PAY_WAYS[k]} · ${T} ₪</a>`; };
-  sheet('paysheet', `<div class="step">📲 <b>נשאר צעד אחד:</b> בוואטסאפ שנפתח לוחצים <b>"שליחה"</b> — רק אז ההזמנה מגיעה לבעל העסק.<br><a href="${url}" target="_blank" rel="noopener">וואטסאפ לא נפתח? לחצו כאן</a></div>
+  sheet('paysheet', `${head}
     ${ks.length ? `<p class="sum">לתשלום: <b>${T} ₪</b></p>${one ? '' : '<p class="muted">בחרו איך לשלם:</p>'}${ks.map(row).join('')}
     ${links.length ? `<small>בדף התשלום מקלידים את הסכום: ${T} ₪ (הסכום מועתק בלחיצה)</small>` : ''}` : ''}`);
 }
@@ -107,7 +113,7 @@ function demoSite(t) { const p = structuredClone(PRESETS[t] || PRESETS.food), d 
   return site; }
 // בדף לדוגמה כפתורי יצירת הקשר לא מתקשרים לאף אחד — מסבירים מה הם יעשו בדף שלכם
 document.addEventListener('click', e => { const a = demo && e.target.closest('.cbtns a'); if (!a) return; e.preventDefault();
-  sheet('ordersheet', `<b>${esc(a.textContent)}</b><p>בדף שלכם הכפתור הזה ${/tel:/.test(a.href) ? 'מחייג אליכם' : /wa\.me/.test(a.href) ? 'פותח שיחת וואטסאפ איתכם' : 'פותח ניווט בוויז לכתובת העסק'} בלחיצה אחת.</p><a class="paybtn wa" href="admin.html">רוצים דף כזה? מתחילים בחינם ←</a>`); });
+  sheet('ordersheet', `<b>${esc(a.textContent)}</b><p>בדף שלכם הכפתור הזה ${/tel:/.test(a.href) ? 'מחייג אליכם' : /wa\.me/.test(a.href) ? 'פותח שיחת וואטסאפ איתכם' : 'פותח ניווט בוויז לכתובת העסק'} בלחיצה אחת.</p><a class="paybtn wa" href="admin.html">רוצים דף כזה? בונים בחינם ←</a>`); });
 document.addEventListener('click', e => { const s = e.target.closest('.paysheet'); if (!s) return;
   if (e.target.closest('.x')) return s.remove();
   const c = e.target.closest('.copy'); if (c) navigator.clipboard?.writeText(c.dataset.copy).then(() => c.textContent = 'הועתק ✓', () => {});

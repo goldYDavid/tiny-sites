@@ -26,7 +26,7 @@ button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:
 select{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 8px}.tabs button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
 .tag{font-weight:700;color:var(--new)}.done .tag,.cancel .tag{color:var(--muted)}.progress .tag{color:var(--accent)}.hold .tag{color:#b58b00}
-.muted{color:var(--muted)}p{margin:6px 0}
+.muted{color:var(--muted)}p{margin:6px 0}.nowa-tag{font-weight:700;color:#b54708}
 #msg{text-align:center;font-weight:700;min-height:22px}
 .check{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);margin-top:10px}.check input{width:22px;height:22px;flex:none}
 .steps{margin:6px 0;padding-inline-start:22px}.steps li{margin:3px 0}
@@ -64,7 +64,7 @@ const cnt = k => LEADS.filter(l => l.status === k).length, list = LEADS.filter(l
   <div class="tabs">${Object.entries(ST).map(([k, [, pl]]) => `<button data-show="${k}" aria-pressed="${SHOW === k}">${pl}${cnt(k) ? ` (${cnt(k)})` : ''}</button>`).join('')}<button data-show="all" aria-pressed="${SHOW === 'all'}">הכול</button></div>
   ${list.length ? list.map(l => { const d = l.data || {}; return `<div class="card ${l.status}">
     <div class="meta"><span class="tag">${l.kind === 'order' ? '🛒 הזמנה' : '✉️ פנייה'}${l.status !== 'new' ? ' · ' + (ST[l.status] || ST.new)[0] : ''}</span><span dir="ltr">${esc(l.slug)} · ${when(l.created_at)}</span></div>
-    ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p>${d.name ? `<p>👤 <b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.note ? `<p>📝 ${esc(d.note)}</p>` : ''}` : '<p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>'}`
+    ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p>${d.name ? `<p>👤 <b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.note ? `<p>📝 ${esc(d.note)}</p>` : ''}${d.nowa ? '<p class="nowa-tag">📞 ללקוח אין וואטסאפ — חוזרים אליו בטלפון</p>' : ''}` : '<p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>'}`
       : `<p><b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.message ? `<p>${esc(d.message)}</p>` : ''}${d.section ? `<p class="muted">מתוך: ${esc(d.section)}</p>` : ''}`}
     <div class="tools">${d.phone ? `<a class="btn primary" target="_blank" href="https://wa.me/${wa(d.phone)}">וואטסאפ ללקוח</a>` : ''}
       <select data-st="${l.id}" aria-label="מצב">${Object.entries(ST).map(([k, [one]]) => `<option value="${k}"${k === l.status ? ' selected' : ''}>מצב: ${one}</option>`).join('')}</select><button data-del="${l.id}">מחיקה</button></div></div>`; }).join('')

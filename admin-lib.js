@@ -42,7 +42,7 @@ async function connect(admin = false) {
   if (session) { UID = session.user.id; EMAIL = session.user.email; trust(EMAIL); return true; }
   // סיסמה (לא חובה) עובדת רק במכשיר שכבר נכנסו בו עם קוד. מכשיר חדש ← קודם קוד במייל
   const known = LS.get('tiny-dev', []);
-  $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email" dir="ltr" autocomplete="email">
+  $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בניית הדף בחינם. כדי שהדף יופיע ללקוחות — 200 ₪ לשנה.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email" dir="ltr" autocomplete="email">
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div>
