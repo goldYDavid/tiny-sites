@@ -92,6 +92,9 @@ function draw() {
     : !PUB ? `<p class="muted">לפני הפרסום אפשר לבנות דף אחד. דפים נוספים — אחרי הפרסום, לפי החבילה.</p>`
     : `<p>החבילה שלך כוללת ${L} ${L === 1 ? 'דף' : 'דפים'}, וכולם בשימוש.</p>
       ${upgrades().length ? `<p class="muted">לדף נוסף צריך לשדרג חבילה:</p><div class="tools">${upgrades().join('')}</div>` : `<p class="muted">לדפים נוספים פנו אלינו בוואטסאפ.</p>${SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}">וואטסאפ</a>` : ''}`}`}</div>
+  ${window.SUPABASE_URL ? `<div class="card"><h2>סיסמה (לא חובה)</h2><small class="muted">כדי להיכנס בלי קוד מהמייל. בטלפון או מחשב חדש תמיד צריך קודם קוד.</small>
+    <label>סיסמה חדשה</label><input id="newpw" type="password" dir="ltr" autocomplete="new-password" placeholder="לפחות 8 תווים">
+    <div class="tools"><button id="savePw">שמירת הסיסמה</button></div></div>` : ''}
   <div class="card"><h2>מחיקת החשבון</h2><small class="muted">מוחק את העסק, כל הדפים, הפניות וההזמנות והתמונות. אי אפשר לשחזר.</small>
     <div class="tools"><button id="delAccount" style="color:#c0392b;border-color:#c0392b">מחיקת החשבון לצמיתות</button></div></div>`;
 }
@@ -193,6 +196,14 @@ document.addEventListener('click', async e => {
       if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
       location.href = href('edit.html', 's=' + slug);
     } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + err.message)); }
+  }
+  if (b.id === 'savePw') {
+    const pw = $('newpw').value;
+    if (pw.length < 8) return bad('newpw', 'הסיסמה צריכה להיות לפחות 8 תווים');
+    b.disabled = true;
+    try { await setPassword(pw); $('newpw').value = ''; msg('✓ הסיסמה נשמרה. במכשיר הזה אפשר להיכנס איתה בלי קוד'); }
+    catch (err) { msg('❌ ' + (/reauth|recent/i.test(err.message) ? 'מטעמי אבטחה צריך להיכנס שוב עם קוד, ואז לשמור את הסיסמה' : /same|different/i.test(err.message) ? 'זו כבר הסיסמה שלך' : /weak|short|characters/i.test(err.message) ? 'הסיסמה חלשה מדי — נסו סיסמה ארוכה יותר' : 'שגיאה: ' + err.message)); }
+    b.disabled = false;
   }
   if (b.id === 'delAccount' && confirm('למחוק את החשבון לצמיתות?\nיימחקו העסק, כל הדפים (הם יירדו מהאוויר), הפניות, ההזמנות והתמונות. אי אפשר לשחזר.')) {
     b.disabled = true; msg('מוחק את החשבון…');

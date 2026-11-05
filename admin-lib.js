@@ -11,6 +11,10 @@ const bad = (id, t) => { const el = $(id); if (el) { el.style.borderColor = '#b4
 const isMail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
 let sb = null, UID = null, EMAIL = '';
+// מכשיר מוכר: מיילים שכבר נכנסו מהדפדפן הזה (עם קוד). רק בהם מותרת כניסה עם סיסמה
+const trust = em => { em = (em || '').toLowerCase(); const k = LS.get('tiny-dev', []); if (em && !k.includes(em)) try { LS.set('tiny-dev', [...k, em]); } catch {} };
+// בחירת סיסמה (לא חובה) — לכניסה בלי קוד במכשיר מוכר
+async function setPassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; }
 
 // מחזיר true כשמחוברים; אחרת מציג מסך כניסה ב-#app ומחזיר false
 // admin=true (ניהול ראשי): כניסה בלבד — בלי הרשמה ובלי טקסט לבעלי עסקים
@@ -20,11 +24,27 @@ async function connect(admin = false) {
   // storageKey נפרד: באותו דומיין רצה גם אפליקציית הסנדוויצים (אותו שרת) — בלי זה החיבור שלה נכנס גם לכאן
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'tiny' }, auth: { storageKey: 'tiny-auth' } });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) { UID = session.user.id; EMAIL = session.user.email; return true; }
+  if (session) { UID = session.user.id; EMAIL = session.user.email; trust(EMAIL); return true; }
+  // סיסמה (לא חובה) עובדת רק במכשיר שכבר נכנסו בו עם קוד. מכשיר חדש ← קודם קוד במייל
+  const known = LS.get('tiny-dev', []);
   $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email">
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
-    <div class="tools"><button class="primary" id="ok">כניסה</button></div></div><div id="msg"></div></div>`;
+    <div class="tools"><button class="primary" id="ok">כניסה</button></div></div>
+    ${known.length ? `<div id="pwbox" hidden><label>הסיסמה</label><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="הסיסמה שבחרתם בהגדרות">
+    <div class="tools"><button class="primary" id="pwok">כניסה עם סיסמה</button></div><p class="muted">שכחתם? נכנסים עם קוד למייל, ואפשר לבחור סיסמה חדשה בהגדרות.</p></div>
+    <p><a href="#" id="pwtoggle">יש לי סיסמה — כניסה בלי קוד</a></p>` : ''}<div id="msg"></div></div>`;
+  if (known.length) {
+    if (known.length === 1) $('em').value = known[0];
+    $('pwtoggle').onclick = e => { e.preventDefault(); $('pwbox').hidden = false; $('pwtoggle').parentNode.hidden = true; ($('em').value ? $('pw') : $('em')).focus(); };
+    $('pw').addEventListener('keydown', e => e.key === 'Enter' && $('pwok').click());
+    $('pwok').onclick = async () => { const em = $('em').value.trim().toLowerCase();
+      if (!isMail(em)) return bad('em', em ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
+      if (!known.includes(em)) return bad('em', 'במכשיר הזה עוד לא נכנסתם עם המייל הזה — קודם נכנסים עם קוד למייל');
+      if (!$('pw').value) return bad('pw', 'צריך להקליד את הסיסמה');
+      const { error } = await sb.auth.signInWithPassword({ email: em, password: $('pw').value });
+      error ? bad('pw', /fetch|network/i.test(error.message) ? 'אין חיבור לאינטרנט — נסו שוב' : 'הסיסמה לא נכונה (או שעוד לא נבחרה סיסמה) — אפשר להיכנס עם קוד למייל') : location.reload(); };
+  }
   // קוד מלא (8 ספרות — לפי ההגדרה ב-Supabase) ← כניסה אוטומטית
   $('code').addEventListener('input', () => { if (/^\d{8}$/.test($('code').value.trim())) $('ok').click(); });
   $('send').onclick = async () => { if (!isMail($('em').value.trim())) return bad('em', $('em').value.trim() ? 'המייל לא תקין — בדקו שיש @ ונקודה' : 'צריך למלא את המייל');
