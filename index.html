@@ -91,7 +91,7 @@ document.addEventListener('click', e => { const b = e.target.closest('.qty butto
       live: ['הדף לא זמין כרגע', 'נסו לרענן בעוד כמה דקות.', ''],
       // מי שמגיע לכאן הוא בדרך כלל לקוח של עסק שקיבל קישור שגוי — קודם עוזרים לו להגיע לעסק, ורק בסוף הצעה למי שיש לו עסק
       none: ['לא מצאנו דף בכתובת הזו', `חיפשנו את הכתובת <b dir="ltr">${esc(slug)}</b> ולא מצאנו עסק כזה. ייתכן שהקישור לא הועתק במלואו או שיש בו טעות הקלדה.`,
-        '<p>הכי פשוט: לבקש מבעל העסק לשלוח שוב את הקישור לדף שלו.</p><p class="own"><a class="lead-btn" style="background:#2563eb;text-decoration:none;color:#fff" href="home">לדף הבית של dafbiz</a></p><p class="own muted">יש לכם עסק? <a href="home">כך בונים דף משלכם, בחינם</a></p>'] }[state] || [];
+        '<p>הכי פשוט: לבקש מבעל העסק לשלוח שוב את הקישור לדף שלו.</p><p class="own"><a class="lead-btn" style="background:#2563eb;text-decoration:none;color:#fff" href="home">לדף הבית של dafbiz</a></p><p class="own muted">יש לכם עסק? <a href="?demo=food">ראו דף לדוגמה</a> · <a href="home#how">איך בונים דף משלכם בחינם</a></p>'] }[state] || [];
     document.title = M[0]; document.getElementById('app').innerHTML = `<div class="paused"><h2>${M[0]}</h2><p>${M[1]}</p>${M[2]}</div>`; }
 })();
 </script>
