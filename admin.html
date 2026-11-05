@@ -34,6 +34,18 @@ button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);col
 .needs{background:#fff4e5;color:#7a3e00;border-radius:10px;padding:10px;margin-top:10px;font-size:14px}.total{margin:12px 0 0;font-size:17px}
 .types button{padding:12px;text-align:center}.types button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 #msg{text-align:center;font-weight:700;min-height:22px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-left:52px}.topbar h1{margin:8px 0 12px}
+.linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;padding:10px 4px;font-size:14px}.linkbtn.danger{color:#c0392b}
+details.card>summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px;padding-inline-end:28px;position:relative;min-height:28px}
+details.card>summary::-webkit-details-marker{display:none}details.card>summary::after{content:'▾';position:absolute;left:2px;top:0;font-size:18px;color:var(--muted)}details.card[open]>summary::after{content:'▴'}details.card[open]>summary{margin-bottom:8px}
+details.sub{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}details.sub>summary{cursor:pointer;font-weight:700;color:var(--accent);padding:8px 0}
+.num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:15px;margin-inline-end:6px}
+.chip{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:1px 8px;background:#fff4e5;color:#7a3e00}.chip.live{background:#e7f6ec;color:#1f7a45}
+.page{flex-direction:column;align-items:stretch}.pinfo small{margin-top:2px}.pbtns{margin:6px 0 0}.page .linkbtn.danger{align-self:flex-start;padding:6px 0}
+.slugbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding-inline-start:10px}.slugbox span{color:var(--muted);white-space:nowrap}.slugbox input{border:0;background:none;padding-inline-start:2px}
+.big{font-size:17px;padding:12px 18px;width:100%}.types .ti{display:block;font-size:22px}
+.chkbtn{display:flex;align-items:center;gap:10px}.chkbtn .box{flex:none;width:24px;height:24px;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.chkbtn[aria-pressed=true]{outline:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card));font-weight:700}.chkbtn[aria-pressed=true] .box{background:var(--accent);border-color:var(--accent)}
 input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:right}  /* טקסט המילוי (placeholder) בעברית — מימין, גם בשדות שמקלידים בהם באנגלית */
 </style>
 </head>
@@ -83,50 +95,84 @@ function payCard() {
   const parts = { bit: () => fld('bit', 'phone', 'מספר הטלפון שמחובר לביט', 'inputmode="tel"') + fld('bit', 'link', 'קישור לתשלום בביט (לא חובה)', LINK),
     paybox: () => fld('paybox', 'link', 'הקישור לקבוצה בפייבוקס', LINK), link: () => fld('link', 'link', 'הקישור לדף התשלום', LINK),
     bank: () => fld('bank', 'details', 'פרטי החשבון להעברה'), cash: () => '' };
-  return `<h2>תשלום מהלקוחות</h2><small class="muted">הכסף עובר ישר אליכם. אפשר לסמן כמה אפשרויות, והלקוח בוחר אחרי ההזמנה איך לשלם</small>
-    <div class="fills" style="margin-top:10px">${Object.entries(PAY_WAYS).map(([k, l]) => `<button data-pay="${k}" aria-pressed="${!!PAYSEL[k]}">${PAYSEL[k] ? '✓ ' : ''}${l}</button>`).join('')}</div>
+  return `<small class="muted">הכסף עובר ישר אליכם. סמנו את כל האפשרויות שמתאימות לכם, והלקוח יבחר אחרי ההזמנה איך לשלם</small>
+    <div class="fills" style="margin-top:10px">${Object.entries(PAY_WAYS).map(([k, l]) => `<button class="chkbtn" data-pay="${k}" role="checkbox" aria-checked="${!!PAYSEL[k]}" aria-pressed="${!!PAYSEL[k]}"><span class="box" aria-hidden="true">${PAYSEL[k] ? '✓' : ''}</span>${l}</button>`).join('')}</div>
     ${Object.keys(PAY_WAYS).filter(k => PAYSEL[k]).map(k => `<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px"><b>${PAY_WAYS[k]}</b><p class="muted" style="font-size:14px;margin:4px 0">${PAY_HELP[k]}</p>${parts[k]()}</div>`).join('')
       || `<p class="muted" style="font-size:14px">${PAY_HELP.none}</p>`}
     <div class="tools"><button class="primary" id="savePay">שמירת אפשרויות התשלום</button></div>`;
 }
 
+// משתמש בלי דף: פתיחה בשלושה צעדים — פרטי העסק ← סוג ← כתובת ← ישר לעורך. פרסום ותשלום רק אחרי שיש דף
+function onboarding() {
+  const s = BIZ.settings;
+  $('app').innerHTML = `${topbar('ברוכים הבאים! 👋')}<p class="muted" style="margin-top:-8px">בונים את הדף בשלושה צעדים קצרים. בחינם — משלמים רק כשרוצים לפרסם.</p><div id="msg"></div>
+  <div class="card"><h2><span class="num">1</span> פרטי העסק</h2>
+    <label>שם העסק</label><input id="b_name" value="${esc(s.name)}" placeholder="למשל: המטבח של רחל">
+    <label>וואטסאפ — לכאן יגיעו ההזמנות</label><input id="b_phone" inputmode="tel" dir="ltr" placeholder="למשל 0501234567" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
+  <div class="card"><h2><span class="num">2</span> סוג העסק</h2><small class="muted">הדף מתחיל עם תוכן לדוגמה שמתאים לסוג, ואתם מחליפים בפרטים שלכם</small>
+    <div class="types" style="margin-top:10px">${typeBtns()}</div></div>
+  <div class="card"><h2><span class="num">3</span> כתובת הדף</h2><small class="muted">הקישור שתשלחו ללקוחות. באנגלית — הצענו לפי שם העסק, ואפשר לשנות</small>
+    ${slugField()}
+    <div class="tools"><button class="primary big" id="create">יצירת הדף ומעבר לעריכה ←</button></div></div>
+  <p class="muted" style="font-size:14px;text-align:center">אחרי שהדף מוכן: בוחרים חבילה ומפרסמים. לוגו, צבעים ואפשרויות תשלום — בהגדרות, מתי שנוח.</p>`;
+  if (s.name && !$('slug').value) suggestSlug(s.name);
+}
+const topbar = t => `<div class="topbar"><h1>${t}</h1>${window.SUPABASE_URL ? '<button id="logout" class="linkbtn">יציאה</button>' : ''}</div>`;
+const typeBtns = () => Object.entries(PRESETS).map(([k, p]) => `<button data-type="${k}" aria-pressed="${k === TYPE}"><span class="ti">${p.logo}</span>${p.label}</button>`).join('');
+const slugField = () => `<label>כתובת הדף (אותיות באנגלית, מספרים ומקף)</label><div class="slugbox" dir="ltr"><span>dafbiz.com/</span><input id="slug" dir="ltr" placeholder="my-shop" autocapitalize="off" autocomplete="off" spellcheck="false"></div><small id="slugst" class="muted"></small>`;
+// כתובת מוצעת לפי שם העסק (תעתיק פשוט מעברית). בעל העסק יכול לשנות
+const HE = { 'א': 'a', 'ב': 'b', 'ג': 'g', 'ד': 'd', 'ה': 'h', 'ו': 'v', 'ז': 'z', 'ח': 'ch', 'ט': 't', 'י': 'y', 'כ': 'k', 'ך': 'ch', 'ל': 'l', 'מ': 'm', 'ם': 'm', 'נ': 'n', 'ן': 'n', 'ס': 's', 'ע': 'a', 'פ': 'p', 'ף': 'f', 'צ': 'tz', 'ץ': 'tz', 'ק': 'k', 'ר': 'r', 'ש': 'sh', 'ת': 't' };
+function translit(name) {
+  return name.toLowerCase().split(/\s+/).map(w => [...w].map((c, i, a) => c === 'ו' && i && i < a.length - 1 && a[i + 1] !== 'ו' ? 'o' : c === 'י' && i && i < a.length - 1 ? 'i' : c === 'ה' && i === a.length - 1 && i ? 'a' : c === 'ו' && a[i - 1] === 'ו' ? '' : HE[c] ?? (/[a-z0-9]/.test(c) ? c : '')).join(''))
+    .filter(Boolean).join('-').replace(/-+/g, '-').slice(0, 30).replace(/^-|-$/g, '');
+}
+let slugTouched = false, slugTimer;
+function suggestSlug(name) { if (slugTouched || !$('slug')) return; const v = translit(name); $('slug').value = v.length >= 3 ? v : ''; checkSlug(); }
+// בדיקה מיידית אם הכתובת פנויה (page_status: none = אין דף כזה)
+function checkSlug() { clearTimeout(slugTimer); const v = $('slug').value.trim().toLowerCase(), st = $('slugst'); if (!st) return;
+  if (!v) return st.textContent = ''; if (/[^a-z0-9-]/.test(v)) return st.textContent = '⚠️ רק אותיות באנגלית, מספרים ומקף'; if (v.length < 3) return st.textContent = 'לפחות 3 תווים';
+  if (!window.SUPABASE_URL) return st.textContent = '';
+  slugTimer = setTimeout(async () => { const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/page_status`, { method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Profile': 'tiny', 'Content-Type': 'application/json' }, body: JSON.stringify({ p_slug: v }) }).then(r => r.json()).catch(() => null);
+    if ($('slug') && $('slug').value.trim().toLowerCase() === v && r) st.innerHTML = r.state === 'none' ? '<span style="color:#1f8a4c">✓ הכתובת פנויה</span>' : '⚠️ הכתובת הזו כבר תפוסה — נסו אחרת'; }, 350); }
+
 function draw() {
   const s = BIZ.settings, L = BIZ.page_limit, can = PAGES.length < L; PUB = published();
-  $('app').innerHTML = `<h1>ניהול העסק</h1><div id="msg"></div>
-  <a class="card head" style="display:flex;text-decoration:none;color:inherit" href="${href('leads.html')}"><h2>📥 פניות והזמנות</h2><span class="${NEWLEADS ? 'primary btn' : 'muted'}">${NEWLEADS ? NEWLEADS + ' חדשות' : 'אין חדשות'} ←</span></a>
-  <div class="card"><h2>הגדרות העסק</h2><small class="muted">מופיעות בכל הדפים שלך</small>
+  if (!PAGES.length) return onboarding();
+  const ways = Object.keys(payWays(s.pay)).map(k => PAY_WAYS[k]);
+  $('app').innerHTML = `${topbar('ניהול העסק')}<div id="msg"></div>
+  <a class="card head" style="display:flex;text-decoration:none;color:inherit" href="${href('leads.html')}"><h2>📥 פניות והזמנות</h2><span id="newleads" class="${NEWLEADS ? 'primary btn' : 'muted'}">${NEWLEADS ? NEWLEADS + ' חדשות' : 'אין חדשות'} ←</span></a>
+  <div class="card"><div class="head"><h2>${PAGES.length > 1 ? 'הדפים שלי' : 'הדף שלי'}</h2><span class="muted">${PAGES.length} מתוך ${L} בחבילה</span></div>
+    ${PAGES.map(p => `<div class="page"><div class="pinfo"><b>${esc(p.content.tagline || (PRESETS[p.content.type] || {}).label || p.slug)}</b>
+      <small><span class="chip ${PUB ? 'live' : ''}">${PUB ? '● מפורסם' : 'טיוטה — רק אתם רואים'}</span> <span class="muted" dir="ltr">dafbiz.com/${esc(p.slug)}</span></small></div>
+      <div class="tools pbtns"><a class="btn primary" href="${href('edit.html', 's=' + encodeURIComponent(p.slug))}">✏️ עריכה</a>
+      <a class="btn" href="${href('index.html', 's=' + encodeURIComponent(p.slug))}" target="_blank">צפייה</a>
+      ${PUB ? `<button data-copy="${esc(p.slug)}">🔗 העתקת קישור</button>` : ''}</div>
+      <button class="linkbtn danger" data-del="${esc(p.slug)}">מחיקת הדף</button></div>`).join('')}
+    ${can && PUB ? `<details class="sub"><summary>+ דף נוסף</summary><label>סוג הדף</label><div class="types">${typeBtns()}</div>${slugField()}
+      <div class="tools"><button class="primary" id="create">יצירת הדף ומעבר לעריכה</button></div></details>`
+    : PUB ? `<p class="muted" style="font-size:14px">${upgrades().length ? 'לדף נוסף — שדרוג חבילה ב"החבילה שלי" למטה.' : 'לדפים נוספים פנו אלינו בוואטסאפ.'}</p>` : ''}</div>
+  ${PUB ? '' : publishCard()}
+  <details class="card" id="setdet"><summary><h2>הגדרות העסק</h2><small class="muted">שם, לוגו, וואטסאפ, כתובת וצבעים</small></summary>
     <div class="grid2"><div><label>שם העסק</label><input id="b_name" value="${esc(s.name)}"></div>
       <div><label>לוגו — תמונה (PNG, JPG או SVG), או אימוג'י</label><div class="logo-pick" id="logoPick">${logoPick(s)}</div></div>
-      <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
+      <div><label>וואטסאפ (למשל 0501234567)</label><input id="b_phone" inputmode="tel" dir="ltr" value="${s.phone ? '0' + String(s.phone).replace(/^972/, '') : ''}"></div>
       <div><label>כתובת (לא חובה)</label><input id="b_address" value="${esc(s.address)}"></div></div>
-    <div class="pvwrap"><small class="muted">כך ייראה ${PAGES.length ? 'הדף שלכם' : 'דף לדוגמה'} — מתעדכן מיד. נשמר רק אחרי "שמירת ההגדרות"</small>
-      <iframe id="pvf" title="תצוגה מקדימה של הדף" src="${PAGES.length ? href('index.html', 's=' + encodeURIComponent(PAGES[0].slug) + '&pv') : 'index.html?demo=' + TYPE + '&pv'}"></iframe></div>
+    <div class="pvwrap"><small class="muted">כך ייראה הדף שלכם — מתעדכן מיד. נשמר רק אחרי "שמירת ההגדרות"</small>
+      <iframe id="pvf" title="תצוגה מקדימה של הדף" data-src="${href('index.html', 's=' + encodeURIComponent(PAGES[0].slug) + '&pv')}"></iframe></div>
     <div id="colors">${colorPick(s.accent || '#c8741a', s.harmony || 'analog')}</div>
-    <div class="tools"><button class="primary" id="saveBiz">שמירת ההגדרות</button></div></div>
-  <div class="card" id="pay">${payCard()}</div>
-  ${PUB ? `<div class="card" id="plan"><div class="head"><h2>החבילה שלי</h2><span class="muted">${L} ${L === 1 ? 'דף' : 'דפים'}${PLANS[L] ? ' · ' + PLANS[L] + ' ₪ לשנה' : ''}</span></div>
-    <small class="muted">מתחדשת ב־${new Date(BIZ.renews_at).toLocaleDateString('he-IL')}</small>
-    ${upgrades().length ? `<p class="muted">שדרוג באמצע השנה: משלמים רק את ההפרש, לפי החודשים שנשארו עד החידוש (${monthsLeft()} חודשים).</p><div class="tools">${upgrades().join('')}</div>` : ''}</div>` : publishCard()}
-  <div class="card"><div class="head"><h2>הדפים שלי</h2><span class="muted">${PAGES.length} מתוך ${L} בחבילה</span></div>
-    ${PAGES.length ? PAGES.map(p => `<div class="page"><div><b>${esc(p.content.tagline || (PRESETS[p.content.type] || {}).label || p.slug)}</b>
-      <small class="muted" dir="ltr">${esc(p.slug)} · ${esc(TEMPLATES_LABEL[p.content.template] || 'קלאסי')}</small></div>
-      <div class="tools" style="margin:0"><a class="btn primary" href="${href('edit.html', 's=' + encodeURIComponent(p.slug))}">עריכה</a>
-      <a class="btn" href="${href('index.html', 's=' + encodeURIComponent(p.slug))}" target="_blank">צפייה</a>
-      ${PUB ? `<button data-copy="${esc(p.slug)}">העתקת קישור</button>` : '<span class="muted">טיוטה</span>'}
-      <button data-del="${esc(p.slug)}">מחיקה</button></div></div>`).join('') : '<p class="muted">עוד אין דפים — צרו את הראשון למטה</p>'}</div>
-  <div class="card"><h2>דף חדש</h2>
-    ${can ? `<label>סוג הדף</label><div class="types">${Object.entries(PRESETS).map(([k, p]) => `<button data-type="${k}" aria-pressed="${k === TYPE}">${p.logo}<br>${p.label}</button>`).join('')}</div>
-      <label>כתובת הדף (אותיות באנגלית, מספרים ומקף)</label><input id="slug" dir="ltr" placeholder="my-shop" autocapitalize="off">
-      <div class="tools"><button class="primary" id="create">יצירת הדף ומעבר לעריכה</button></div>`
-    : !PUB ? `<p class="muted">לפני הפרסום אפשר לבנות דף אחד. דפים נוספים — אחרי הפרסום, לפי החבילה.</p>`
-    : `<p>החבילה שלך כוללת ${L} ${L === 1 ? 'דף' : 'דפים'}, וכולם בשימוש.</p>
-      ${upgrades().length ? `<p class="muted">לדף נוסף צריך לשדרג חבילה:</p><div class="tools">${upgrades().join('')}</div>` : `<p class="muted">לדפים נוספים פנו אלינו בוואטסאפ.</p>${SALES_PHONE ? `<a class="btn primary" target="_blank" href="https://wa.me/${SALES_PHONE}">וואטסאפ</a>` : ''}`}`}</div>
-  ${window.SUPABASE_URL ? `<div class="card"><h2>סיסמה (לא חובה)</h2><small class="muted">כדי להיכנס בלי קוד מהמייל. בטלפון או מחשב חדש תמיד צריך קודם קוד.</small>
+    <div class="tools"><button class="primary" id="saveBiz">שמירת ההגדרות</button></div></details>
+  <details class="card" id="paydet"><summary><h2>תשלום מהלקוחות</h2><small class="muted">${ways.length ? 'פעיל: ' + ways.join(', ') : 'עוד לא נבחר — הלקוחות מזמינים בוואטסאפ בלבד'}</small></summary><div id="pay">${payCard()}</div></details>
+  ${PUB ? `<details class="card" id="plandet"><summary><h2>החבילה שלי</h2><small class="muted">${L} ${L === 1 ? 'דף' : 'דפים'}${PLANS[L] ? ' · ' + PLANS[L] + ' ₪ לשנה' : ''} · מתחדשת ב־${new Date(BIZ.renews_at).toLocaleDateString('he-IL')}</small></summary>
+    ${upgrades().length ? `<p class="muted">שדרוג באמצע השנה: משלמים רק את ההפרש, לפי החודשים שנשארו עד החידוש (${monthsLeft()} חודשים).</p><div class="tools">${upgrades().join('')}</div>` : '<p class="muted">זו החבילה הגדולה ביותר. לדפים נוספים פנו אלינו בוואטסאפ.</p>'}</details>` : ''}
+  ${window.SUPABASE_URL ? `<details class="card"><summary><h2>סיסמה (לא חובה)</h2><small class="muted">כדי להיכנס בלי קוד מהמייל במכשיר הזה</small></summary><small class="muted">בטלפון או מחשב חדש תמיד צריך קודם קוד.</small>
     <label>סיסמה חדשה</label><input id="newpw" type="password" dir="ltr" autocomplete="new-password" placeholder="לפחות 8 תווים">
-    <div class="tools"><button id="savePw">שמירת הסיסמה</button></div></div>` : ''}
-  <div class="card"><h2>מחיקת החשבון</h2><small class="muted">מוחק את העסק, כל הדפים, הפניות וההזמנות והתמונות. אי אפשר לשחזר.</small>
-    <div class="tools"><button id="delAccount" style="color:#c0392b;border-color:#c0392b">מחיקת החשבון לצמיתות</button></div></div>`;
+    <div class="tools"><button id="savePw">שמירת הסיסמה</button></div></details>` : ''}
+  <details class="card"><summary><h2>מחיקת החשבון</h2></summary><small class="muted">מוחק את העסק, כל הדפים, הפניות וההזמנות והתמונות. אי אפשר לשחזר.</small>
+    <div class="tools"><button id="delAccount" style="color:#c0392b;border-color:#c0392b">מחיקת החשבון לצמיתות</button></div></details>`;
 }
+// התצוגה המקדימה נטענת רק כשפותחים את ההגדרות — המסך הראשי נשאר מהיר
+document.addEventListener('toggle', e => { const f = e.target.querySelector && e.target.open && e.target.querySelector('iframe[data-src]:not([src])'); if (f) f.src = f.dataset.src; }, true);
+document.addEventListener('input', e => { if (e.target.id === 'slug') { slugTouched = true; checkSlug(); } if (e.target.id === 'b_name' && !PAGES.length) suggestSlug(e.target.value); });
 // מפורסם = שולם ותאריך החידוש לא עבר לפני יותר מ־14 יום (כמו בשרת). לפני תשלום — טיוטה שרק בעל העסק רואה
 let PUB = false, REQ_PLAN = 1, REQ_FILL = '';
 // לוגו: תמונה שהועלתה (עם תצוגה והסרה) או אימוג'י/אות
@@ -221,7 +267,11 @@ document.addEventListener('click', async e => {
       phone: $('b_phone').value.replace(/\D/g, '').replace(/^0/, '972'), address: $('b_address').value.trim() };
     try { await DB.saveBiz(s); BIZ.settings = s; msg('ההגדרות נשמרו ✓'); } catch (err) { msg('❌ שגיאה בשמירה: ' + human(err)); }
   }
+  if (b.id === 'logout') { await logout(); return location.reload(); }
   if (b.id === 'create') {
+    const first = !PAGES.length, ph = first ? $('b_phone').value.replace(/\D/g, '') : '';
+    if (first && !$('b_name').value.trim()) return bad('b_name', 'צריך למלא את שם העסק');
+    if (first && !/^(05\d{8}|9725\d{8})$/.test(ph)) return bad('b_phone', ph ? 'מספר הוואטסאפ לא תקין — 10 ספרות שמתחילות ב־05' : 'צריך למלא מספר וואטסאפ — אליו מגיעות ההזמנות');
     const slug = $('slug').value.trim().toLowerCase();
     if (!slug) return bad('slug', 'צריך למלא כתובת לדף, למשל my-shop');
     if (/[^a-z0-9-]/.test(slug)) return bad('slug', 'בכתובת מותר רק אותיות באנגלית, מספרים ומקף (בלי רווחים ועברית)');
@@ -229,11 +279,12 @@ document.addEventListener('click', async e => {
     const { label, name, phone, address, accent, logo, ...content } = structuredClone(PRESETS[TYPE]);
     content.type = TYPE; content.template = 'classic';
     try {
-      await DB.addPage(slug, content);
-      // עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
-      if (!BIZ.settings.logo) await DB.saveBiz({ ...BIZ.settings, logo, accent });
+      // פתיחה: שם + וואטסאפ נשמרים קודם (גם אם הכתובת תפוסה). עסק בלי לוגו — מתחילים מהלוגו והצבע של סוג הדף
+      const ns = { ...BIZ.settings, ...(first && { name: $('b_name').value.trim(), phone: ph.replace(/^0/, '972') }), ...(!BIZ.settings.logo && !BIZ.settings.logo_img && { logo, accent }) };
+      if (JSON.stringify(ns) !== JSON.stringify(BIZ.settings)) { await DB.saveBiz(ns); BIZ.settings = ns; }
+      b.disabled = true; await DB.addPage(slug, content);
       location.href = href('edit.html', 's=' + slug);
-    } catch (err) { /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + human(err))); }
+    } catch (err) { b.disabled = false; /duplicate|unique/i.test(err.message) ? bad('slug', 'הכתובת הזו כבר תפוסה — נסו אחרת') : msg('❌ ' + (/limit|row-level/i.test(err.message) ? 'הגעתם למכסת הדפים בחבילה' : 'שגיאה: ' + human(err))); }
   }
   if (b.id === 'savePw') {
     const pw = $('newpw').value;
@@ -256,7 +307,7 @@ document.addEventListener('click', async e => {
 (async () => {
   if (!(await connect())) return;
   [BIZ, PAGES] = await Promise.all([DB.biz(), DB.pages()]);
-  draw(); DB.leads().then(l => { NEWLEADS = l.filter(x => x.status === 'new').length; if (NEWLEADS) draw(); }).catch(() => {});  // לא מעכב את המסך
+  draw(); DB.leads().then(l => { NEWLEADS = l.filter(x => x.status === 'new').length; const n = $('newleads'); if (NEWLEADS && n) { n.className = 'primary btn'; n.textContent = NEWLEADS + ' חדשות ←'; } }).catch(() => {});  // לא מעכב את המסך ולא בונה אותו מחדש
 })();
 </script>
 </body>

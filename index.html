@@ -28,19 +28,26 @@ function render(site) {
   app.innerHTML = (site.draft ? '<div class="draft">טיוטה — הדף עוד לא מפורסם, ורק אתם רואים אותו</div>' : '') + renderSite(site, false, cart);
   update();
 }
+const money = n => (Math.round(n * 100) / 100).toLocaleString('he-IL', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });  // 5.9 ← 5.90
 function update() {
-  const lines = []; let sum = 0;
-  for (const [k, q] of Object.entries(cart)) if (q) { const [si, ii] = k.split('-'), it = SITE.sections[si].items[ii]; lines.push(`${q} × ${it.name}`); sum += q * it.price; }
-  const w = Object.keys(payWays(SITE.pay)), paid = w.length === 1 ? `\nתשלום: ${w[0] === 'link' ? 'בקישור התשלום שבאתר' : 'ב' + PAY_WAYS[w[0]]}` : '';  // כמה אפשרויות ← הלקוח בוחר אחר כך
-  const text = lines.length ? `שלום, אשמח להזמין:\n${lines.join('\n')}\nסה"כ: ${Math.round(sum * 100) / 100} ₪${paid}` : `שלום, הגעתי מהאתר של ${SITE.name}`;
-  const a = document.getElementById('cta'); ORDER = { items: lines, total: Math.round(sum * 100) / 100 };
-  a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
-  a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${Math.round(sum * 100) / 100} ₪` : (SITE.cta || 'וואטסאפ');
-  if (demo) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? מתחילים בחינם ←'; }  // דף לדוגמה ← הרשמה
+  const lines = [], rows = []; let sum = 0;
+  for (const [k, q] of Object.entries(cart)) if (q) { const [si, ii] = k.split('-'), it = SITE.sections[si].items[ii]; lines.push(`${q} × ${it.name}`); rows.push([q, it.name, q * it.price]); sum += q * it.price; }
+  const a = document.getElementById('cta'); ORDER = { items: lines, rows, total: Math.round(sum * 100) / 100 };
+  a.href = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(`שלום, הגעתי מהאתר של ${SITE.name}`)}`; a.target = '_blank';
+  a.textContent = lines.length ? `${SITE.cta || 'הזמנה בוואטסאפ'} · ${money(sum)} ₪` : (SITE.cta || 'וואטסאפ');
+  if (demo && !lines.length) { a.href = 'admin.html'; a.removeAttribute('target'); a.textContent = 'רוצים דף כזה לעסק שלכם? מתחילים בחינם ←'; }  // דף לדוגמה ← הרשמה
   if (pv) a.removeAttribute('href');
 }
-// טופס השארת פרטים ← נשמר בפניות של בעל העסק + נפתחת הודעת וואטסאפ מוכנה אליו (כדי שיידע מיד)
-document.addEventListener('submit', e => { const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
+// הודעת ההזמנה שנשלחת לבעל העסק בוואטסאפ
+function orderText(b) {
+  const w = Object.keys(payWays(SITE.pay)), paid = w.length === 1 ? `\nתשלום: ${w[0] === 'link' ? 'בקישור התשלום שבאתר' : 'ב' + PAY_WAYS[w[0]]}` : '';  // כמה אפשרויות ← הלקוח בוחר אחר כך
+  return `שלום, אשמח להזמין:\n${ORDER.items.join('\n')}\nסה"כ: ${money(ORDER.total)} ₪${paid}\n\nשם: ${b.name}\nטלפון: ${b.phone}${b.note ? '\nהערה: ' + b.note : ''}`;
+}
+const sheet = (id, html) => { document.querySelectorAll('.paysheet').forEach(x => x.remove()); document.body.insertAdjacentHTML('beforeend', `<div class="paysheet" id="${id}" role="dialog"><button class="x" aria-label="סגירה">✕</button>${html}</div>`); };
+// טופס פנייה (מקטע "השאירו פרטים") ← נשמר בפניות של בעל העסק + נפתחת הודעת וואטסאפ מוכנה אליו (כדי שיידע מיד)
+document.addEventListener('submit', e => {
+  if (e.target.id === 'orderform') return sendOrder(e);
+  const f = e.target.closest('form[data-lead]'); if (!f) return; e.preventDefault();
   const { website, ...d } = Object.fromEntries(new FormData(f)), section = SITE.sections[f.dataset.lead].title;
   const thanks = '<p class="ok">✓ תודה! הפרטים התקבלו ונחזור אליכם בהקדם</p>';
   if (website) return f.innerHTML = thanks;  // שדה נסתר שרק תוכנות ספאם ממלאות
@@ -49,34 +56,61 @@ document.addEventListener('submit', e => { const f = e.target.closest('form[data
   const text = `שלום, השארתי פרטים באתר (${section}):\nשם: ${d.name}\nטלפון: ${d.phone}${d.message ? '\n' + d.message : ''}`;
   window.open(`https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   f.innerHTML = thanks + '<p class="muted">נפתחה הודעת וואטסאפ — לחצו "שליחה" כדי שבעל העסק יקבל אותה מיד</p>'; });
-// הזמנה מהעגלה נרשמת גם בניהול (בלי לעכב את המעבר לוואטסאפ)
-document.getElementById('cta').addEventListener('click', () => { if (!ORDER.items.length || demo || pv) return; sendLead(slug, 'order', ORDER).catch(() => {}); payNow(ORDER.total); });
-// אחרי הזמנה: כפתור תשלום עם הסכום, לפי מה שבעל העסק בחר (ביט / פייבוקס / קישור משלו). בלי סליקה — רק הודעת הוואטסאפ
-function payNow(total) {
+// לחיצה על כפתור ההזמנה (יש מוצרים בעגלה) ← סיכום + שם וטלפון, כדי שבעל העסק יוכל לחזור ללקוח גם אם הודעת הוואטסאפ לא נשלחה
+document.getElementById('cta').addEventListener('click', e => { if (!ORDER.items.length || pv) return; e.preventDefault();
+  let b = {}; try { b = JSON.parse(localStorage.getItem('buyer') || '{}'); } catch {}  // בהזמנה הבאה — כבר ממולא
+  sheet('ordersheet', `<b>ההזמנה שלכם${demo ? ' (דוגמה)' : ''}</b>
+    <div class="olines">${ORDER.rows.map(([q, n, t]) => `<p><span>${q} × ${esc(n)}</span><span>${money(t)} ₪</span></p>`).join('')}<p class="osum"><span>סה"כ</span><b>${money(ORDER.total)} ₪</b></p></div>
+    <form id="orderform" class="lead">
+      <input name="name" placeholder="שם" aria-label="שם" autocomplete="name" required value="${esc(b.name || '')}" oninvalid="this.setCustomValidity('צריך למלא שם')" oninput="this.setCustomValidity('')">
+      <input name="phone" type="tel" inputmode="tel" placeholder="טלפון" aria-label="טלפון" autocomplete="tel" required pattern="[0-9 +\\-]{9,15}" value="${esc(b.phone || '')}" oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'צריך למלא טלפון' : 'מספר הטלפון לא תקין')" oninput="this.setCustomValidity('')">
+      <input name="note" placeholder="הערה (לא חובה) — למשל כתובת למשלוח" aria-label="הערה (לא חובה)">
+      <button class="paybtn wa">שליחת ההזמנה בוואטסאפ</button>
+      <small>ייפתח וואטסאפ עם ההזמנה מוכנה — שם לוחצים "שליחה"</small></form>`);
+});
+function sendOrder(e) { e.preventDefault();
+  const b = Object.fromEntries(new FormData(e.target)); b.name = b.name.trim(); b.phone = b.phone.trim(); b.note = (b.note || '').trim();
+  const text = orderText(b), url = `https://wa.me/${SITE.phone}?text=${encodeURIComponent(text)}`;
+  if (demo) return sheet('ordersheet', `<b>כך זה עובד בדף שלכם</b><p class="muted">ההודעה הזו נפתחת בוואטסאפ של הלקוח, והוא שולח אותה אליכם. ההזמנה נשמרת גם במסך הניהול, עם השם והטלפון:</p>
+    <pre class="wamsg">${esc(text)}</pre><a class="paybtn wa" href="admin.html">רוצים דף כזה? מתחילים בחינם ←</a>`);
+  try { localStorage.setItem('buyer', JSON.stringify({ name: b.name, phone: b.phone })); } catch {}
+  sendLead(slug, 'order', { items: ORDER.items, total: ORDER.total, name: b.name, phone: b.phone, ...(b.note && { note: b.note }) }).catch(() => {});
+  window.open(url, '_blank', 'noopener');
+  payNow(ORDER.total, url);
+}
+// אחרי הזמנה: תזכורת ללחוץ "שליחה" בוואטסאפ + כפתורי תשלום עם הסכום, לפי מה שבעל העסק בחר. הכסף עובר ישר אליו
+function payNow(total, url) {
   const W = payWays(SITE.pay), ks = Object.keys(PAY_WAYS).filter(k => W[k] && (k === 'bit' ? W[k].phone || W[k].link : k === 'bank' ? W[k].details : k === 'cash' || W[k].link));
-  if (!ks.length) return;
-  const one = ks.length === 1, links = ks.filter(k => W[k].link);
+  const one = ks.length === 1, links = ks.filter(k => W[k].link), T = money(total);
   const row = k => { const v = W[k], ph = v.phone ? '0' + String(v.phone).replace(/^972/, '') : '';
-    if (k === 'bit') return (v.link ? `<a class="paybtn" href="${esc(v.link)}" target="_blank" rel="noopener">תשלום בביט · ${total} ₪</a>` : '')
+    if (k === 'bit') return (v.link ? `<a class="paybtn" href="${esc(v.link)}" target="_blank" rel="noopener">תשלום בביט · ${T} ₪</a>` : '')
       + (ph ? `<p>${v.link ? 'או העברה' : 'העברה'} בביט למספר <b dir="ltr">${ph}</b> <button class="copy" data-copy="${ph}">העתקת המספר</button></p>` : '');
     if (k === 'bank') return `<div class="payrow"><b>העברה בנקאית</b><p style="white-space:pre-line">${esc(v.details)}</p><button class="copy" data-copy="${esc(v.details)}">העתקת הפרטים</button></div>`;
     if (k === 'cash') return `<div class="payrow"><b>💵 מזומן</b><p>אפשר לשלם במזומן באיסוף או במסירה</p></div>`;
-    return `<a class="paybtn" href="${esc(v.link)}" target="_blank" rel="noopener">${k === 'link' ? (one ? 'לתשלום' : 'תשלום בכרטיס אשראי') : 'תשלום ב' + PAY_WAYS[k]} · ${total} ₪</a>`; };
-  document.getElementById('paysheet')?.remove();
-  document.body.insertAdjacentHTML('beforeend', `<div class="paysheet" id="paysheet" role="dialog" aria-label="תשלום"><button class="x" aria-label="סגירה">✕</button>
-    <b>ההזמנה נשלחה בוואטסאפ ✓</b><p class="sum">לתשלום: <b>${total} ₪</b></p>${one ? '' : '<p class="muted">בחרו איך לשלם:</p>'}
-    ${ks.map(row).join('')}
-    ${links.length ? `<small>בדף התשלום מקלידים את הסכום: ${total} ₪ (הסכום מועתק בלחיצה)</small>` : ''}</div>`);
+    return `<a class="paybtn" href="${esc(v.link)}" target="_blank" rel="noopener">${k === 'link' ? (one ? 'לתשלום' : 'תשלום בכרטיס אשראי') : 'תשלום ב' + PAY_WAYS[k]} · ${T} ₪</a>`; };
+  sheet('paysheet', `<div class="step">📲 <b>נשאר צעד אחד:</b> בוואטסאפ שנפתח לוחצים <b>"שליחה"</b> — רק אז ההזמנה מגיעה לבעל העסק.<br><a href="${url}" target="_blank" rel="noopener">וואטסאפ לא נפתח? לחצו כאן</a></div>
+    ${ks.length ? `<p class="sum">לתשלום: <b>${T} ₪</b></p>${one ? '' : '<p class="muted">בחרו איך לשלם:</p>'}${ks.map(row).join('')}
+    ${links.length ? `<small>בדף התשלום מקלידים את הסכום: ${T} ₪ (הסכום מועתק בלחיצה)</small>` : ''}` : ''}`);
 }
-document.addEventListener('click', e => { const s = e.target.closest('#paysheet'); if (!s) return;
+// דף לדוגמה: התוכן של התבנית + פרטים ותמונות שנראים כמו עסק אמיתי (DEMOS ב-presets.js)
+function demoSite(t) { const p = structuredClone(PRESETS[t] || PRESETS.food), d = (window.DEMOS || {})[t] || {};
+  const site = { ...p, phone: '972500000000', name: d.name || p.name, address: d.address ?? p.address, template: qs.get('t') };
+  for (const [k, v] of Object.entries(d.img || {})) { const [si, ii] = k.split('.'); site.sections[si].items[ii].image = v; }
+  for (const [si, v] of Object.entries(d.text || {})) site.sections[si].body = v;
+  if (d.gallery) site.sections.find(x => x.kind === 'gallery').items = d.gallery.map(image => ({ image, name: 'תמונה' }));
+  return site; }
+// בדף לדוגמה כפתורי יצירת הקשר לא מתקשרים לאף אחד — מסבירים מה הם יעשו בדף שלכם
+document.addEventListener('click', e => { const a = demo && e.target.closest('.cbtns a'); if (!a) return; e.preventDefault();
+  sheet('ordersheet', `<b>${esc(a.textContent)}</b><p>בדף שלכם הכפתור הזה ${/tel:/.test(a.href) ? 'מחייג אליכם' : /wa\.me/.test(a.href) ? 'פותח שיחת וואטסאפ איתכם' : 'פותח ניווט בוויז לכתובת העסק'} בלחיצה אחת.</p><a class="paybtn wa" href="admin.html">רוצים דף כזה? מתחילים בחינם ←</a>`); });
+document.addEventListener('click', e => { const s = e.target.closest('.paysheet'); if (!s) return;
   if (e.target.closest('.x')) return s.remove();
   const c = e.target.closest('.copy'); if (c) navigator.clipboard?.writeText(c.dataset.copy).then(() => c.textContent = 'הועתק ✓', () => {});
-  if (e.target.closest('.paybtn')) navigator.clipboard?.writeText(String(ORDER.total)).catch(() => {}); });
+  if (e.target.closest('.paybtn[target]')) navigator.clipboard?.writeText(String(ORDER.total)).catch(() => {}); });
 document.addEventListener('click', e => { const b = e.target.closest('.qty button'); if (!b) return;
   const k = b.dataset.k; cart[k] = Math.max(0, (cart[k] || 0) + +b.dataset.d); document.getElementById('q' + k).textContent = cart[k]; update(); });
 
 (async () => {
-  if (demo) { render({ phone: '972500000000', ...PRESETS[demo], template: qs.get('t') }); return document.getElementById('app').insertAdjacentHTML('afterbegin', '<div class="draft" style="background:#2563eb">דף לדוגמה — כך ייראה הדף של העסק שלכם</div>'); }
+  if (demo) { render(demoSite(demo)); return document.getElementById('app').insertAdjacentHTML('afterbegin', '<div class="draft" style="background:#2563eb">דף לדוגמה — נסו להוסיף מוצרים ולהזמין · <a href="admin.html" style="color:#fff">רוצים דף כזה?</a></div>'); }
   const key = 'site:' + slug;
   try { const c = localStorage.getItem(key); if (c) render(JSON.parse(c)); } catch {}
   const fresh = await window.loadSite(slug).catch(() => 'offline');  // בלי רשת ← נשארים עם העותק השמור

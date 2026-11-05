@@ -56,6 +56,14 @@ h2{font-size:24px;margin:0 0 14px}
 .plan .p small{font-size:15px;font-weight:600;color:var(--muted)}
 .plan.best{border:2px solid var(--accent)}
 .note{color:var(--muted);font-size:15px;margin-top:12px}
+/* מה יש בדף: שורות קומפקטיות עם אייקון בצד; במסך רחב — 2 בשורה */
+.f .card{display:flex;gap:12px;align-items:flex-start;padding:12px 14px}.f .ic{margin:2px 0 0;font-size:24px}
+@media (min-width:640px){.f{grid-template-columns:1fr 1fr}}
+.types a:last-child:nth-child(odd){grid-column:1/-1;justify-content:center}
+.plans{grid-template-columns:repeat(3,1fr);gap:8px}.plan{padding:14px 6px;position:relative}.plan .p{font-size:26px;line-height:1.2}.plan .p small{display:block;font-size:13px}.plan .per{font-size:12px;color:var(--muted);margin-top:2px}
+.plan .tag{position:absolute;top:-11px;inset-inline:0;margin:auto;width:max-content;background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px}
+.faq summary{list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:28px}.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';font-size:22px;color:var(--accent);font-weight:400}.faq details[open] summary::after{content:'−'}
 .faq details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .faq summary{font-weight:700;cursor:pointer}
 .faq details p{margin:8px 0 0;color:#444;font-size:15px}
@@ -87,12 +95,12 @@ footer{padding:10px 0 40px;text-align:center;color:var(--muted);font-size:14px}
 <section>
   <h2>מה יש בדף</h2>
   <div class="grid f">
-    <div class="card"><div class="ic">🛒</div><b>מחירון עם הזמנה</b><p>הלקוח בוחר מוצרים וכמויות, ונשלחת אליכם הודעת וואטסאפ עם ההזמנה והסכום.</p></div>
-    <div class="card"><div class="ic">📥</div><b>טופס פניות</b><p>מי שמשאיר פרטים נשמר אצלכם במסך הניהול, ומגיעה לכם התראה לטלפון.</p></div>
-    <div class="card"><div class="ic">✏️</div><b>עורכים לבד מהטלפון</b><p>לוחצים על טקסט, מחיר או תמונה ומשנים. השינוי מופיע מיד בדף.</p></div>
-    <div class="card"><div class="ic">💳</div><b>תשלום ישר אליכם</b><p>אחרי הזמנה הלקוח בוחר איך לשלם, מתוך האפשרויות שסימנתם: ביט, פייבוקס, כרטיס אשראי, העברה בנקאית או מזומן. הכסף לא עובר דרכנו.</p></div>
-    <div class="card"><div class="ic">🔗</div><b>קישור שנראה טוב בוואטסאפ</b><p>כששולחים את הקישור מופיעים שם העסק ותמונה, ולא סתם כתובת.</p></div>
-    <div class="card"><div class="ic">📱</div><b>מהיר ומותאם לטלפון</b><p>הדף נטען מהר גם בקליטה חלשה, ונראה טוב בכל מסך.</p></div>
+    <div class="card"><div class="ic">🛒</div><div><b>מחירון עם הזמנה</b><p>הלקוח בוחר מוצרים וכמויות, ונשלחת אליכם הודעת וואטסאפ עם ההזמנה והסכום.</p></div></div>
+    <div class="card"><div class="ic">📥</div><div><b>טופס פניות</b><p>מי שמשאיר פרטים נשמר אצלכם במסך הניהול, ומגיעה לכם התראה לטלפון.</p></div></div>
+    <div class="card"><div class="ic">✏️</div><div><b>עורכים לבד מהטלפון</b><p>לוחצים על טקסט, מחיר או תמונה ומשנים. השינוי מופיע מיד בדף.</p></div></div>
+    <div class="card"><div class="ic">💳</div><div><b>תשלום ישר אליכם</b><p>אחרי הזמנה הלקוח בוחר איך לשלם, מתוך האפשרויות שסימנתם: ביט, פייבוקס, כרטיס אשראי, העברה בנקאית או מזומן. הכסף לא עובר דרכנו.</p></div></div>
+    <div class="card"><div class="ic">🔗</div><div><b>קישור שנראה טוב בוואטסאפ</b><p>כששולחים את הקישור מופיעים שם העסק ותמונה, ולא סתם כתובת.</p></div></div>
+    <div class="card"><div class="ic">📱</div><div><b>מהיר ומותאם לטלפון</b><p>הדף נטען מהר גם בקליטה חלשה, ונראה טוב בכל מסך.</p></div></div>
   </div>
 </section>
 
@@ -123,9 +131,9 @@ footer{padding:10px 0 40px;text-align:center;color:var(--muted);font-size:14px}
 <section>
   <h2>מחירים</h2>
   <div class="plans">
-    <div class="card plan best"><div class="n">דף אחד</div><div class="p">200 ₪ <small>לשנה</small></div></div>
-    <div class="card plan"><div class="n">3 דפים</div><div class="p">500 ₪ <small>לשנה</small></div></div>
-    <div class="card plan"><div class="n">5 דפים</div><div class="p">800 ₪ <small>לשנה</small></div></div>
+    <div class="card plan best"><span class="tag">לרוב העסקים</span><div class="n">דף אחד</div><div class="p">200 ₪ <small>לשנה</small></div></div>
+    <div class="card plan"><div class="n">3 דפים</div><div class="p">500 ₪ <small>לשנה</small></div><div class="per">167 ₪ לדף</div></div>
+    <div class="card plan"><div class="n">5 דפים</div><div class="p">800 ₪ <small>לשנה</small></div><div class="per">160 ₪ לדף</div></div>
   </div>
   <p class="note">הבנייה חינם. משלמים רק כשרוצים שהדף יופיע ללקוחות. אין דמי אחסון נוספים. אפשר לשדרג חבילה באמצע השנה ולשלם רק את ההפרש.</p>
   <div class="card" style="margin-top:12px"><b>אין זמן למלא לבד?</b><p>אנחנו מנסחים ומסדרים את הדף בשבילכם, בתשלום חד־פעמי: בסיס 99 ₪, מורחב 199 ₪, מלא 349 ₪. אתם שולחים את החומרים (לוגו, תמונות, מחירים, שעות), ואנחנו לא ממציאים תוכן.</p></div>

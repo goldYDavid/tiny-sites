@@ -7,6 +7,8 @@ const T = (ed, p, v, ph, cls) => ed ? `<span contenteditable="plaintext-only" da
 const IMG = (ed, p, v, cls, ph) => ed
   ? `<label class="ed-img"><input type="file" accept="image/*" data-img="${p}">${v ? `<img class="${cls}" src="${esc(v)}" alt="">` : `<span class="ed-ph">📷 ${ph}</span>`}</label>`
   : v ? `<img class="${cls}" src="${esc(v)}" alt="" loading="lazy">` : '';
+// מחיר עם אגורות: 5.9 ← 5.90
+const PRICE = v => typeof v === 'number' && v % 1 ? v.toFixed(2) : esc(v);
 const TOOLS = (ed, si, ii) => ed ? `<div class="ed-tools">${[['up', '↑', 'למעלה'], ['down', '↓', 'למטה'], ['del', '✕', 'מחיקה']].map(([a, t, l]) => `<button data-act="${a}" data-s="${si}" data-i="${ii}" aria-label="${l}">${t}</button>`).join('')}</div>` : '';
 // סגנונות תצוגה למחירון מוצרים (נבחר לכל מקטע בעורך)
 window.VIEWS = { list: 'רשימה עם תמונה קטנה', grid: 'רשת — 2 בשורה', big: 'תמונה גדולה', text: 'בלי תמונות' };
@@ -16,7 +18,7 @@ const VIEWPICK = (s, si) => `<div class="viewpick" role="radiogroup" aria-label=
 const RENDER = {
   products: (s, si, ed, cart) => `<div class="items v-${VIEWS[s.view] ? s.view : 'list'}">` + s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<div class="card item">${IMG(ed, p + 'image', it.image, '', 'תמונה')}
     <div class="t"><b>${T(ed, p + 'name', it.name, 'שם המוצר')}</b>${it.note || ed ? `<small>${T(ed, p + 'note', it.note, 'פירוט (משקל/כמות)')}</small>` : ''}</div>
-    <div class="price">${T(ed, p + 'price', it.price, 'מחיר', 'num')} ₪</div>
+    <div class="price">${ed ? T(ed, p + 'price', it.price, 'מחיר', 'num') : PRICE(it.price)} ₪</div>
     ${ed ? TOOLS(ed, si, ii) : s.noCart ? '' : `<div class="qty"><button data-k="${si}-${ii}" data-d="1" aria-label="הוספה">+</button><span id="q${si}-${ii}">${cart[si + '-' + ii] || 0}</span><button data-k="${si}-${ii}" data-d="-1" aria-label="הפחתה">−</button></div>`}</div>`).join('') + '</div>',
   services: (s, si, ed) => s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<div class="card item"><div class="t"><b>${T(ed, p + 'name', it.name, 'שם השירות')}</b>${it.desc || ed ? `<small>${T(ed, p + 'desc', it.desc, 'תיאור')}</small>` : ''}</div><div class="price">${T(ed, p + 'price', it.price, 'מחיר')}</div>${TOOLS(ed, si, ii)}</div>`).join(''),
   schedule: (s, si, ed) => `<div class="card">${s.items.map((it, ii, _, p = `sections.${si}.items.${ii}.`) => `<div class="row"><b>${T(ed, p + 'day', it.day, 'יום')} ${T(ed, p + 'time', it.time, 'שעה')}</b><span>${T(ed, p + 'what', it.what, 'מה (גיל/רמה)')}</span>${TOOLS(ed, si, ii)}</div>`).join('')}</div>`,
@@ -53,7 +55,7 @@ window.renderSite = (site, ed = false, cart = {}) => {
     ? `<section class="${s.hidden ? 'ed-hidden' : ''}"><div class="ed-sec"><h2>${T(ed, `sections.${si}.title`, s.title, 'כותרת')}</h2><div class="ed-tools">
         <button data-act="sup" data-s="${si}" aria-label="הזזת המקטע למעלה">↑</button><button data-act="sdown" data-s="${si}" aria-label="הזזת המקטע למטה">↓</button>
         <button data-act="shide" data-s="${si}">${s.hidden ? 'הצגה' : 'הסתרה'}</button><button data-act="sdel" data-s="${si}">מחיקה</button></div></div>
-        ${s.kind === 'products' ? VIEWPICK(s, si) : ''}${RENDER[s.kind](s, si, ed, cart)}${s.kind === 'text' || s.kind === 'lead' ? '' : `<button class="ed-add" data-act="add" data-s="${si}">+ הוספה</button>`}</section>`
+        ${s.kind === 'products' ? `<details class="viewdet"><summary>סגנון התצוגה: <b>${VIEWS[s.view] || VIEWS.list}</b></summary>${VIEWPICK(s, si)}</details>` : ''}${RENDER[s.kind](s, si, ed, cart)}${s.kind === 'text' || s.kind === 'lead' ? '' : `<button class="ed-add" data-act="add" data-s="${si}">+ הוספה</button>`}</section>`
     : s.hidden ? '' : `<section><h2>${esc(s.title)}</h2>${RENDER[s.kind](s, si, ed, cart)}</section>`;
   return `<header>
     ${ed ? IMG(ed, 'image', site.image, 'hero-img', 'תמונה ראשית (לא חובה)') : ''}${!ed && site.image ? `<img class="hero-img" src="${esc(site.image)}" alt="">` : ''}
@@ -64,8 +66,8 @@ window.renderSite = (site, ed = false, cart = {}) => {
     ${hours ? `<span class="open ${isOpen ? 'y' : 'n'}">${isOpen ? '● פתוח עכשיו' : '● סגור כעת'}</span>` : ''}</header>
     ${site.sections.map(sec).join('')}
     <section class="contact"><h2>יצירת קשר</h2><div class="card">
-      ${site.phone ? `<p>טלפון: <a href="tel:+${esc(site.phone)}">0${esc(String(site.phone).replace(/^972/, ''))}</a></p>` : ''}
-      ${site.address ? `<p>כתובת: <a href="https://maps.google.com/?q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener">${esc(site.address)}</a></p>` : ''}
+      ${site.phone ? `<p>טלפון: <b dir="ltr">0${esc(String(site.phone).replace(/^972/, ''))}</b></p>` : ''}${site.address ? `<p>כתובת: ${esc(site.address)}</p>` : ''}
+      <div class="cbtns">${site.phone ? `<a href="tel:+${esc(site.phone)}">📞 חיוג</a><a href="https://wa.me/${esc(site.phone)}" target="_blank" rel="noopener">💬 וואטסאפ</a>` : ''}${site.address ? `<a href="https://waze.com/ul?q=${encodeURIComponent(site.address)}&navigate=yes" target="_blank" rel="noopener">🧭 ניווט</a>` : ''}</div>
     </div></section>
     ${ed ? `<section><h2>הכפתור הירוק למטה</h2><div class="card">${T(ed, 'cta', site.cta, 'טקסט הכפתור (למשל "הזמנה בוואטסאפ")')}</div></section>` : `<footer>© ${esc(site.name)} · <a href="legal.html#access">הצהרת נגישות</a> · <a href="legal.html#privacy">פרטיות</a> · <a href="legal.html#terms">תנאי שימוש</a></footer>`}`;
 };

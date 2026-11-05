@@ -31,6 +31,8 @@ async function setPassword(pw) { const { error } = await sb.auth.updateUser({ pa
 
 // מחזיר true כשמחוברים; אחרת מציג מסך כניסה ב-#app ומחזיר false
 // admin=true (ניהול ראשי): כניסה בלבד — בלי הרשמה ובלי טקסט לבעלי עסקים
+// יציאה מהחשבון (טלפון משותף וכו'). המייל נשאר ברשימת המכשירים המוכרים — כניסה חוזרת עם סיסמה עדיין אפשרית
+async function logout() { if (sb) await sb.auth.signOut().catch(() => {}); localStorage.removeItem('tiny-auth'); }
 async function connect(admin = false) {
   if (!window.SUPABASE_URL) return true;
   await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; sc.onload = r; document.head.append(sc); });
@@ -40,7 +42,7 @@ async function connect(admin = false) {
   if (session) { UID = session.user.id; EMAIL = session.user.email; trust(EMAIL); return true; }
   // סיסמה (לא חובה) עובדת רק במכשיר שכבר נכנסו בו עם קוד. מכשיר חדש ← קודם קוד במייל
   const known = LS.get('tiny-dev', []);
-  $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email">
+  $('app').innerHTML = `<h1>${admin ? 'כניסה לניהול הראשי' : 'כניסה או הרשמה'}</h1><div class="card">${admin ? '' : '<p class="muted" style="margin-top:0">בונים דף לעסק בחינם, ומשלמים רק כשרוצים לפרסם אותו.</p>'}<label>המייל שלך</label><input id="em" type="email" inputmode="email" dir="ltr" autocomplete="email">
     <div class="tools"><button class="primary" id="send">שליחת קוד למייל</button></div><div id="step2" hidden>
     <label>הקוד מהמייל</label><input id="code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" style="font-size:22px;letter-spacing:4px;text-align:center">
     <div class="tools"><button class="primary" id="ok">כניסה</button></div></div>

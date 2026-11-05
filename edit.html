@@ -13,7 +13,10 @@
 .top .in{max-width:680px;margin:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .top a,.top button,.tools button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:7px 11px;cursor:pointer;text-decoration:none}
 .top .grow{flex:1}
-.tpl{display:flex;gap:4px}.tpl button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
+.top .in{flex-wrap:nowrap}.top #msg{position:fixed;inset:auto 12px 16px;width:auto;z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px;box-shadow:0 4px 16px #0003}
+#save{padding:8px 18px;font-size:15px}
+.edhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:14px;color:var(--muted)}.tpl{display:flex;gap:4px}.tpl button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:7px 11px;cursor:pointer}.tpl button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
+.hint{margin-top:12px;font-size:14px;background:color-mix(in srgb,var(--accent) 8%,var(--card));border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}.hint p{margin:2px 0}.hint button{float:left;border:0;background:none;font-size:18px;color:var(--muted);cursor:pointer;width:38px;height:38px;margin:-8px -8px 0 0}
 .primary{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important;font-weight:700}
 #msg{text-align:center;font-weight:700;min-height:22px;font-size:14px;width:100%}
 #msg:empty{display:none}
@@ -26,8 +29,7 @@ input:placeholder-shown,textarea:placeholder-shown{direction:rtl;text-align:righ
 </head>
 <body>
 <div class="top" id="top" hidden><div class="in">
-  <a id="back" href="admin.html">→ לניהול</a><span class="grow"></span>
-  <span class="tpl" id="tpl"></span>
+  <a id="back" href="admin.html">→ ניהול</a><span class="grow"></span>
   <a id="view" target="_blank">צפייה</a><button class="primary" id="save">שמירה</button>
   <div id="msg"></div></div></div>
 <div class="wrap" id="app">טוען…</div>
@@ -46,10 +48,12 @@ function draw() {
   const site = { ...BIZ.settings, ...C };
   applyColors(site);  // ראשי + משני לפי כלל ההרמוניה (config.js)
   $('app').className = 'wrap ed t-' + (C.template || 'classic');
-  $('app').innerHTML = renderSite(site, true) + `<div class="card addsec"><b>הוספת מקטע לדף</b>
+  let seen = false; try { seen = localStorage.getItem('ed-hint') === '1'; } catch {}
+  $('app').innerHTML = (seen ? '' : `<div class="card hint"><button data-act="hint" aria-label="סגירה">✕</button><p><b>איך עורכים:</b> לוחצים על כל טקסט עם מסגרת מקווקוות ומקלידים במקומו. על "📷" — מוסיפים תמונה.</p><p>בסוף לוחצים <b>"שמירה"</b> למעלה, והדף מתעדכן מיד אצל הלקוחות.</p></div>`)
+    + `<div class="edhead">עיצוב הדף: <span class="tpl">${Object.entries(TEMPLATES).map(([k, l]) => `<button data-tpl="${k}" aria-pressed="${(C.template || 'classic') === k}">${l}</button>`).join('')}</span></div>`
+    + renderSite(site, true) + `<div class="card addsec"><b>הוספת מקטע לדף</b>
     <select id="newKind">${Object.entries(KINDS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
     <div class="tools"><button data-act="sadd">+ הוספת המקטע</button></div></div>`;
-  $('tpl').innerHTML = Object.entries(TEMPLATES).map(([k, l]) => `<button data-tpl="${k}" aria-pressed="${(C.template || 'classic') === k}">${l}</button>`).join('');
 }
 const changed = () => { dirty = true; $('save').textContent = 'שמירה •'; };
 
@@ -69,6 +73,7 @@ document.addEventListener('click', async e => {
   if (b.dataset.view !== undefined) { C.sections[+b.dataset.view].view = b.dataset.v; changed(); return draw(); }  // סגנון תצוגת המחירון
   const a = b.dataset.act, si = +b.dataset.s, s = C.sections[si], i = +b.dataset.i, swap = (arr, x, y) => y >= 0 && y < arr.length && ([arr[x], arr[y]] = [arr[y], arr[x]]);
   if (!a) return;
+  if (a === 'hint') { try { localStorage.setItem('ed-hint', '1'); } catch {} return b.closest('.hint').remove(); }
   if (a === 'add') s.items.push({});
   if (a === 'del' && confirm('למחוק את השורה?')) s.items.splice(i, 1);
   if (a === 'up') swap(s.items, i, i - 1);

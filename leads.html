@@ -20,7 +20,9 @@ input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-r
 .tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 11px;cursor:pointer;text-decoration:none;display:inline-block}
 .primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
-.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;margin:0 -16px 12px;padding:2px 16px 4px;overflow-x:auto;scrollbar-width:none}.tabs button{flex:none;white-space:nowrap}
+.ncard summary{cursor:pointer;font-weight:700;font-size:15px}.ncard[open] summary{margin-bottom:6px}
+.top{display:flex;justify-content:space-between;align-items:center}
 select{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 8px}.tabs button[aria-pressed=true]{outline:2px solid var(--accent);font-weight:700}
 .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
 .tag{font-weight:700;color:var(--new)}.done .tag,.cancel .tag{color:var(--muted)}.progress .tag{color:var(--accent)}.hold .tag{color:#b58b00}
@@ -52,15 +54,17 @@ function notifyCard() {
     : st === 'ok' ? '<div class="tools"><button class="primary" data-push="on">🔔 הפעלת התראות בטלפון</button></div>'
     : st === 'ios-home' ? '<p>באייפון ההתראות עובדות רק מהמסך הראשי:</p><ol class="steps"><li>לוחצים על כפתור השיתוף <b>⬆️</b> בתחתית ספארי</li><li>בוחרים "הוספה למסך הבית"</li><li>פותחים את "העסק שלי" מהמסך הראשי, ונכנסים שוב למסך הזה כדי להפעיל</li></ol>'
     : st === 'denied' ? '<p class="muted">ההתראות חסומות בדפדפן. כדי לקבל אותן צריך לאשר התראות לאתר בהגדרות הדפדפן.</p>' : '<p class="muted">הדפדפן הזה לא תומך בהתראות.</p>';
-  return `<div class="card"><b>🔔 התראה על הזמנה או פנייה חדשה</b>${push}
-    <label class="check"><input type="checkbox" id="mailOn"${mail ? ' checked' : ''}> גם במייל${EMAIL ? ` ל־<span dir="ltr">${esc(EMAIL)}</span>` : ''}</label></div>`;
+  const body = `${push}<label class="check"><input type="checkbox" id="mailOn"${mail ? ' checked' : ''}> גם במייל${EMAIL ? ` ל־<span dir="ltr">${esc(EMAIL)}</span>` : ''}</label>`;
+  // אחרי שההתראות הופעלו — שורה אחת מקופלת, כדי שהפניות יהיו בראש המסך
+  return PUSH || st !== 'ok' && mail ? `<details class="card ncard"><summary>🔔 התראות: ${[PUSH && 'בטלפון', mail && 'במייל'].filter(Boolean).join(' + ') || 'כבויות'}</summary>${body}</details>`
+    : `<div class="card"><b>🔔 התראה על הזמנה או פנייה חדשה</b>${body}</div>`;
 }
 const cnt = k => LEADS.filter(l => l.status === k).length, list = LEADS.filter(l => SHOW === 'all' || l.status === SHOW);
   $('app').innerHTML = `<a class="btn" href="${href('admin.html')}">→ לניהול</a><h1>פניות והזמנות</h1><div id="msg"></div>${notifyCard()}
   <div class="tabs">${Object.entries(ST).map(([k, [, pl]]) => `<button data-show="${k}" aria-pressed="${SHOW === k}">${pl}${cnt(k) ? ` (${cnt(k)})` : ''}</button>`).join('')}<button data-show="all" aria-pressed="${SHOW === 'all'}">הכול</button></div>
   ${list.length ? list.map(l => { const d = l.data || {}; return `<div class="card ${l.status}">
     <div class="meta"><span class="tag">${l.kind === 'order' ? '🛒 הזמנה' : '✉️ פנייה'}${l.status !== 'new' ? ' · ' + (ST[l.status] || ST.new)[0] : ''}</span><span dir="ltr">${esc(l.slug)} · ${when(l.created_at)}</span></div>
-    ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p><p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>`
+    ${l.kind === 'order' ? `${(d.items || []).map(i => `<p>${esc(i)}</p>`).join('')}<p><b>סה"כ: ${esc(d.total)} ₪</b></p>${d.name ? `<p>👤 <b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.note ? `<p>📝 ${esc(d.note)}</p>` : ''}` : '<p class="muted">פרטי הלקוח בהודעת הוואטסאפ שקיבלתם</p>'}`
       : `<p><b>${esc(d.name)}</b> · <a href="tel:${esc(d.phone)}" dir="ltr">${esc(d.phone)}</a></p>${d.message ? `<p>${esc(d.message)}</p>` : ''}${d.section ? `<p class="muted">מתוך: ${esc(d.section)}</p>` : ''}`}
     <div class="tools">${d.phone ? `<a class="btn primary" target="_blank" href="https://wa.me/${wa(d.phone)}">וואטסאפ ללקוח</a>` : ''}
       <select data-st="${l.id}" aria-label="מצב">${Object.entries(ST).map(([k, [one]]) => `<option value="${k}"${k === l.status ? ' selected' : ''}>מצב: ${one}</option>`).join('')}</select><button data-del="${l.id}">מחיקה</button></div></div>`; }).join('')

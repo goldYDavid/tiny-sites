@@ -76,3 +76,15 @@ window.PRESETS = {
       { kind: 'services', title: 'מחירים', items: [{ name: 'שבת', desc: 'שישי 12:00 עד מוצ"ש', price: '650 ₪' }] },
       { kind: 'lead', title: 'השאירו פרטים', body: 'נחזור אליכם בהקדם', button: 'שליחה' }] },
 };
+
+// דפים לדוגמה (dafbiz.com/?demo=<סוג>): פרטים ותמונות שנראים כמו עסק אמיתי, במקום "שם העסק" / "..." של התבנית.
+// img: "מקטע.פריט" ← תמונה, text: מקטע ← טקסט. התמונות ב-demo/ (CC0 / נחלת הכלל — demo/CREDITS.txt)
+window.DEMOS = {
+  food: { name: 'המטבח של רחל', img: { '0.0': 'demo/hummus.webp', '0.1': 'demo/matbucha.webp', '1.0': 'demo/fish.webp', '1.1': 'demo/chicken.webp' },
+    text: { 2: 'כשרות: בהשגחת רבנות השכונה\nמשלוח בשכונה ביום שישי 9:00–12:00' } },
+  seasonal: { name: 'אור החנוכה', img: { '0.0': 'demo/oil.webp' }, text: { 2: 'איסוף מהבית: רחוב הגפן 4\nמשלוח בשכונה: 10 ₪\nשעות איסוף: א׳–ה׳ 17:00–21:00' } },
+  shop: { name: 'המכולת של יוסי', address: 'רחוב הגפן 4', img: { '1.0': 'demo/milk.webp', '1.1': 'demo/fillet.webp' } },
+  judaica: { name: 'הרב משה לוי — סופר סת"ם', text: { 1: 'סופר מוסמך, בעל תעודת הסמכה לכתיבה ולבדיקה\nניסיון של 15 שנה' } },
+  classes: { name: 'חוג ציור עם שרה', text: { 2: 'מורה לאמנות עם ניסיון של 10 שנים. בכל שיעור הילדים יוצרים עבודה שלמה ולוקחים אותה הביתה.' } },
+  rental: { gallery: ['demo/room.webp', 'demo/living.webp', 'demo/kitchen.webp'] },
+};
