@@ -50,7 +50,9 @@ function draw() {
   // התראות על פנייה/הזמנה חדשה: בטלפון (במכשיר הזה) + במייל (ברירת מחדל: פעיל)
 function notifyCard() {
   const st = pushState(), mail = BIZ.settings.notify_email !== false;
-  const push = PUSH ? '<p>✓ התראות פעילות בטלפון הזה</p><div class="tools"><button data-push="off">כיבוי ההתראות בטלפון</button></div>'
+  // באנדרואיד ההתראות של אתר מגיעות לפעמים "בשקט" (בלי צליל וקפיצה) — האתר לא יכול לשנות את זה, רק בעל הטלפון
+  const loud = /Android/i.test(navigator.userAgent) ? '<details class="tip"><summary>ההתראה מגיעה בשקט, בלי צליל או קפיצה על המסך?</summary><ol class="steps"><li>כשמגיעה התראה מהאתר, לוחצים עליה לחיצה ארוכה</li><li>בוחרים "התראה" (במקום "שקט")</li><li>לוחצים על ⚙️ ומפעילים "הצגה כחלון קופץ"</li></ol></details>' : '';
+  const push = PUSH ? '<p>✓ התראות פעילות בטלפון הזה</p>' + loud + '<div class="tools"><button data-push="off">כיבוי ההתראות בטלפון</button></div>'
     : st === 'ok' ? '<div class="tools"><button class="primary" data-push="on">🔔 הפעלת התראות בטלפון</button></div>'
     : st === 'ios-home' ? '<p>באייפון ההתראות עובדות רק מהמסך הראשי:</p><ol class="steps"><li>לוחצים על כפתור השיתוף <b>⬆️</b> בתחתית ספארי</li><li>בוחרים "הוספה למסך הבית"</li><li>פותחים את "העסק שלי" מהמסך הראשי, ונכנסים שוב למסך הזה כדי להפעיל</li></ol>'
     : st === 'denied' ? '<p class="muted">ההתראות חסומות בדפדפן. כדי לקבל אותן צריך לאשר התראות לאתר בהגדרות הדפדפן.</p>' : '<p class="muted">הדפדפן הזה לא תומך בהתראות.</p>';
